@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+:root {
+  --bg-body: #f0f2f5;
+  --bg-card: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+}
+
+.dark {
+  --bg-body: #0b1120;
+  --bg-card: #141e33;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --border-color: #1e293b;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  background: var(--bg-body);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+@media print {
+  .no-print { display: none !important; }
+}
+
+.ant-table-wrapper {
+  background: transparent;
+}
+
+.ant-card {
+  border-radius: 12px !important;
+}
+
+.dark .ant-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark .ant-table {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-table-thead > tr > th {
+  background: var(--bg-card) !important;
+  color: var(--text-secondary) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+.dark .ant-table-tbody > tr > td {
+  background: transparent !important;
+  border-bottom-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-table-tbody > tr:hover > td {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+.dark .ant-modal-content,
+.dark .ant-modal-header {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark .ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-form-item-label > label {
+  color: var(--text-secondary) !important;
+}
+
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-select-selector,
+.dark .ant-picker {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-input::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+.dark .ant-select-arrow,
+.dark .ant-picker-suffix {
+  color: var(--text-secondary) !important;
+}
+
+.dark .ant-badge-status-text {
+  color: var(--text-secondary) !important;
+}
+
+.dark .ant-statistic-title {
+  color: var(--text-secondary) !important;
+}
+
+.dark .ant-statistic-content {
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-btn-default {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .ant-btn-default:hover {
+  border-color: #6366f1 !important;
+  color: #818cf8 !important;
+}

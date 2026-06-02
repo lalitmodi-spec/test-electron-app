@@ -1,0 +1,174 @@
+import Dexie from 'dexie';
+
+const db = new Dexie('BillingApp');
+
+db.version(5).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+});
+
+db.version(4).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+});
+
+db.version(3).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+});
+
+db.version(2).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  expenses: '++id, title, category, amount, date, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+});
+
+const defaultSettings = {
+  businessName: 'Your Business Name',
+  businessAddress: '123, Main Street, City - 000001',
+  businessPhone: '+91 9876543210',
+  businessEmail: 'business@example.com',
+  businessGstin: '29ABCDE1234F1Z5',
+  businessLogo: '',
+  businessBankName: '',
+  businessBankAccount: '',
+  businessBankIfsc: '',
+  currency: 'INR',
+  taxLabel: 'GST',
+  defaultTaxRate: 18,
+  termsConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. on delayed payments.',
+  theme: 'dark',
+  invoiceTemplate: 'modern',
+  expenseCategories: JSON.stringify(['Office Supplies', 'Utilities', 'Travel', 'Food', 'Rent', 'Maintenance', 'Salary', 'Marketing', 'Software', 'Other']),
+};
+
+export async function getSettings() {
+  const settings = await db.settings.toArray();
+  const result = { ...defaultSettings };
+  settings.forEach(s => { result[s.key] = s.value; });
+  return result;
+}
+
+export async function updateSetting(key, value) {
+  const existing = await db.settings.get(key);
+  if (existing) {
+    await db.settings.update(key, { value });
+  } else {
+    await db.settings.add({ id: key, key, value });
+  }
+}
+
+export async function logActivity(type, message) {
+  await db.activity.add({
+    type,
+    message,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function getPaymentSummary(invoiceId) {
+  const payments = await db.payments.where('invoiceId').equals(invoiceId).toArray();
+  return payments.reduce((s, p) => s + Number(p.amount), 0);
+}
+
+export async function getPaymentsForInvoice(invoiceId) {
+  return db.payments.where('invoiceId').equals(invoiceId).reverse().toArray();
+}
+
+export async function recordPayment({ invoiceId, amount, method, date, reference, note }) {
+  const payment = {
+    invoiceId: Number(invoiceId),
+    amount: Number(amount),
+    method: method || 'Cash',
+    date: date || new Date().toISOString().split('T')[0],
+    reference: reference || '',
+    note: note || '',
+    createdAt: new Date().toISOString(),
+  };
+  const id = await db.payments.add(payment);
+
+  const invoice = await db.invoices.get(Number(invoiceId));
+  if (invoice) {
+    const totalPaid = await getPaymentSummary(invoiceId);
+    const grandTotal = Number(invoice.grandTotal) || 0;
+    let newStatus = 'unpaid';
+    if (totalPaid >= grandTotal) newStatus = 'paid';
+    else if (totalPaid > 0) newStatus = 'partial';
+    await db.invoices.update(Number(invoiceId), { status: newStatus });
+  }
+
+  await logActivity('payment', `Payment of ₹${Number(amount).toFixed(2)} recorded for invoice #${invoice?.invoiceNo || invoiceId}`);
+  return id;
+}
+
+export async function deletePayment(id, invoiceId) {
+  await db.payments.delete(id);
+  const invoice = await db.invoices.get(Number(invoiceId));
+  if (invoice) {
+    const totalPaid = await getPaymentSummary(invoiceId);
+    const grandTotal = Number(invoice.grandTotal) || 0;
+    let newStatus = 'unpaid';
+    if (totalPaid >= grandTotal) newStatus = 'paid';
+    else if (totalPaid > 0) newStatus = 'partial';
+    await db.invoices.update(Number(invoiceId), { status: newStatus });
+  }
+}
+
+export async function getCustomerPaymentSummary(customerId) {
+  const invoices = await db.invoices.where('customerId').equals(customerId).toArray();
+  let totalBilled = 0;
+  let totalPaid = 0;
+  for (const inv of invoices) {
+    totalBilled += Number(inv.grandTotal) || 0;
+    const paid = await getPaymentSummary(inv.id);
+    totalPaid += paid;
+  }
+  return {
+    totalBilled,
+    totalPaid,
+    pending: totalBilled - totalPaid,
+    invoiceCount: invoices.length,
+  };
+}
+
+export async function getInvoicesForCustomer(customerId) {
+  const invoices = await db.invoices.where('customerId').equals(customerId).reverse().toArray();
+  const result = [];
+  for (const inv of invoices) {
+    const paid = await getPaymentSummary(inv.id);
+    result.push({ ...inv, paidAmount: paid, balance: (Number(inv.grandTotal) || 0) - paid });
+  }
+  return result;
+}
+
+export async function getPaymentsForCustomer(customerId) {
+  const invoices = await db.invoices.where('customerId').equals(customerId).toArray();
+  const invoiceIds = invoices.map(i => i.id);
+  if (invoiceIds.length === 0) return [];
+  const payments = await db.payments.where('invoiceId').anyOf(invoiceIds).reverse().toArray();
+  const invoiceMap = {};
+  invoices.forEach(i => { invoiceMap[i.id] = i.invoiceNo; });
+  return payments.map(p => ({
+    ...p,
+    invoiceNo: invoiceMap[p.invoiceId] || `#${p.invoiceId}`,
+  }));
+}
+
+export default db;

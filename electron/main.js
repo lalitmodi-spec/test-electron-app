@@ -1,0 +1,126 @@
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isDev = !app.isPackaged;
+
+function getLogoDir() {
+  const dir = path.join(app.getPath("userData"), "logos");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function createWindow() {
+    const win = new BrowserWindow({
+        width: 1360,
+        height: 860,
+        minWidth: 1024,
+        minHeight: 700,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, "preload.js"),
+        },
+        titleBarStyle: "hiddenInset",
+        show: false,
+    });
+
+    win.once("ready-to-show", () => win.show());
+
+    if (isDev) {
+        win.loadURL("http://localhost:5173");
+    } else {
+        win.loadFile(path.join(__dirname, "../dist/index.html"));
+    }
+}
+
+ipcMain.handle("save-pdf", async (event, { pdfData, filename }) => {
+    const { canceled, filePath } = await dialog.showSaveDialog({
+        defaultPath: filename,
+        filters: [{ name: "PDF Files", extensions: ["pdf"] }],
+    });
+    if (canceled || !filePath) return { success: false };
+    const buffer = Buffer.from(pdfData, "base64");
+    fs.writeFileSync(filePath, buffer);
+    return { success: true, filePath };
+});
+
+ipcMain.handle("export-data", async () => {
+    const { canceled, filePath } = await dialog.showSaveDialog({
+        defaultPath: `billing-backup-${Date.now()}.json`,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (canceled || !filePath) return { success: false };
+    return { success: true, filePath };
+});
+
+ipcMain.handle("save-export", async (event, { filePath, data }) => {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+    return { success: true };
+});
+
+ipcMain.handle("import-data", async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        filters: [{ name: "JSON", extensions: ["json"] }],
+        properties: ["openFile"],
+    });
+    if (canceled || filePaths.length === 0) return { success: false };
+    const content = fs.readFileSync(filePaths[0], "utf-8");
+    return { success: true, data: JSON.parse(content) };
+});
+
+ipcMain.handle("save-logo", async (event, { base64Data, filename }) => {
+  const logoDir = getLogoDir();
+  const ext = filename ? path.extname(filename) : ".png";
+  const logoPath = path.join(logoDir, `business_logo${ext}`);
+  const buffer = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ""), "base64");
+  fs.writeFileSync(logoPath, buffer);
+  return { success: true, filePath: logoPath };
+});
+
+ipcMain.handle("read-logo", async () => {
+  const logoDir = getLogoDir();
+  const files = fs.readdirSync(logoDir).filter(f => f.startsWith("business_logo"));
+  if (files.length === 0) return { success: true, data: null };
+  const logoPath = path.join(logoDir, files[0]);
+  const buffer = fs.readFileSync(logoPath);
+  const ext = path.extname(logoPath).toLowerCase();
+  const mime = ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+  const base64 = `data:${mime};base64,${buffer.toString("base64")}`;
+  return { success: true, data: base64, filePath: logoPath };
+});
+
+ipcMain.handle("delete-logo", async () => {
+  const logoDir = getLogoDir();
+  const files = fs.readdirSync(logoDir).filter(f => f.startsWith("business_logo"));
+  for (const f of files) fs.unlinkSync(path.join(logoDir, f));
+  return { success: true };
+});
+
+ipcMain.handle("save-csv", async (event, { csvData, filename }) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    defaultPath: filename || "export.csv",
+    filters: [{ name: "CSV Files", extensions: ["csv"] }],
+  });
+  if (canceled || !filePath) return { success: false };
+  fs.writeFileSync(filePath, csvData, "utf-8");
+  return { success: true, filePath };
+});
+
+ipcMain.handle("save-file", async (event, { data, filename, filters }) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    defaultPath: filename,
+    filters: filters || [{ name: "All Files", extensions: ["*"] }],
+  });
+  if (canceled || !filePath) return { success: false };
+  fs.writeFileSync(filePath, data, "utf-8");
+  return { success: true, filePath };
+});
+
+app.whenReady().then(createWindow);
+
+app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") app.quit();
+});
