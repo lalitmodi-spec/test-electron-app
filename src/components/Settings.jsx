@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Upload, Image } from 'antd';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Upload, Image, Divider } from 'antd';
 import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, FilePdfOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
@@ -185,6 +185,11 @@ export default function Settings() {
               </Select>
             </Form.Item>
           </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="businessUpiId" label="UPI ID (for QR on invoice)">
+              <Input placeholder="example@upi" />
+            </Form.Item>
+          </Col>
         </Row>
       ),
     },
@@ -243,6 +248,32 @@ export default function Settings() {
                 <Select.Option value="classic">Classic (Blue)</Select.Option>
                 <Select.Option value="minimal">Minimal (Clean)</Select.Option>
               </Select>
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Divider style={{ margin: '8px 0' }} />
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>Invoice Numbering</Text>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item name="invoicePrefix" label="Prefix">
+              <Input placeholder="INV" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item name="invoiceSeparator" label="Separator">
+              <Input placeholder="-" maxLength={2} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item name="invoiceZeroPad" label="Zero Padding">
+              <Select>
+                {[3, 4, 5, 6].map(n => <Select.Option key={n} value={n}>{n} digits (e.g. 00{Array(n-2).fill(0).join('')}1)</Select.Option>)}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item name="invoiceNextNumber" label="Next Number">
+              <InputNumber min={1} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={24}>

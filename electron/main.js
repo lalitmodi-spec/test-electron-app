@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -117,6 +117,22 @@ ipcMain.handle("save-file", async (event, { data, filename, filters }) => {
   if (canceled || !filePath) return { success: false };
   fs.writeFileSync(filePath, data, "utf-8");
   return { success: true, filePath };
+});
+
+ipcMain.handle("send-email", async (event, { to, subject, body, attachmentPath }) => {
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  if (attachmentPath) {
+    try {
+      const result = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Email Invoice',
+        message: 'Invoice PDF has been saved. Please attach it manually to your email.',
+        detail: `File: ${attachmentPath}\n\nYour default email client will open with the invoice details pre-filled.`,
+      });
+    } catch (e) { /* ignore */ }
+  }
+  shell.openExternal(mailto);
+  return { success: true };
 });
 
 app.whenReady().then(createWindow);

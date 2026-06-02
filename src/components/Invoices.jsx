@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
   PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined,
-  SearchOutlined, FilterOutlined, DollarOutlined
+  SearchOutlined, FilterOutlined, DollarOutlined, MailOutlined
 } from '@ant-design/icons';
 import db, { logActivity, getPaymentSummary } from '../db';
 import { generateInvoicePDF } from '../utils/pdfExport';
@@ -46,6 +46,24 @@ export default function Invoices() {
   async function handlePdf(inv, template) {
     await generateInvoicePDF(inv, template);
     message.success('PDF generated');
+  }
+
+  async function handleEmail(inv) {
+    if (window.electronAPI) {
+      const customerEmail = inv.customerEmail || '';
+      if (!customerEmail) {
+        message.warning('No email address for this customer');
+        return;
+      }
+      await window.electronAPI.sendEmail({
+        to: customerEmail,
+        subject: `Invoice ${inv.invoiceNo} from ${inv.businessName || 'Business'}`,
+        body: `Dear ${inv.customerName},\n\nPlease find attached invoice ${inv.invoiceNo} for ₹${Number(inv.grandTotal).toFixed(2)}.\n\nThank you for your business!`,
+      });
+      message.success('Email client opened');
+    } else {
+      message.info('Email sending available in Electron app');
+    }
   }
 
   async function openView(inv) {
@@ -181,6 +199,9 @@ export default function Invoices() {
               <Select.Option value="classic">PDF (Classic)</Select.Option>
               <Select.Option value="minimal">PDF (Minimal)</Select.Option>
             </Select>
+            <Tooltip title="Email invoice to customer">
+              <Button icon={<MailOutlined />} onClick={() => { handleEmail(view); setView(null); }} />
+            </Tooltip>
             <Button type="primary" icon={<EditOutlined />}
               onClick={() => { navigate(`/invoice/edit/${view.id}`); setView(null); }}>Edit</Button>
           </Space>

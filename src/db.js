@@ -2,6 +2,18 @@ import Dexie from 'dexie';
 
 const db = new Dexie('BillingApp');
 
+db.version(6).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
+  creditNotes: '++id, cnNo, invoiceId, customerId, customerName, date, status, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+  counters: '++id, key',
+});
+
 db.version(5).stores({
   customers: '++id, name, phone, gstin, email, createdAt',
   products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
@@ -50,12 +62,17 @@ const defaultSettings = {
   businessBankName: '',
   businessBankAccount: '',
   businessBankIfsc: '',
+  businessUpiId: '',
   currency: 'INR',
   taxLabel: 'GST',
   defaultTaxRate: 18,
   termsConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. on delayed payments.',
   theme: 'dark',
   invoiceTemplate: 'modern',
+  invoicePrefix: 'INV',
+  invoiceSeparator: '-',
+  invoiceNextNumber: 1,
+  invoiceZeroPad: 5,
   expenseCategories: JSON.stringify(['Office Supplies', 'Utilities', 'Travel', 'Food', 'Rent', 'Maintenance', 'Salary', 'Marketing', 'Software', 'Other']),
 };
 
@@ -169,6 +186,73 @@ export async function getPaymentsForCustomer(customerId) {
     ...p,
     invoiceNo: invoiceMap[p.invoiceId] || `#${p.invoiceId}`,
   }));
+}
+
+export async function getNextInvoiceNo() {
+  const settings = await getSettings();
+  const prefix = settings.invoicePrefix || 'INV';
+  const sep = settings.invoiceSeparator || '-';
+  const pad = Number(settings.invoiceZeroPad) || 5;
+  let next = Number(settings.invoiceNextNumber) || 1;
+
+  const existing = await db.counters.get('invoice_no');
+  if (existing) {
+    next = existing.value;
+  }
+
+  const num = String(next).padStart(pad, '0');
+  const invoiceNo = `${prefix}${sep}${num}`;
+
+  await db.counters.put({ id: 'invoice_no', key: 'invoice_no', value: next + 1 });
+  await updateSetting('invoiceNextNumber', next + 1);
+
+  return invoiceNo;
+}
+
+export async function getNextCreditNoteNo() {
+  const settings = await getSettings();
+  const prefix = 'CN';
+  const sep = settings.invoiceSeparator || '-';
+  const pad = Number(settings.invoiceZeroPad) || 5;
+
+  let next = 1;
+  const existing = await db.counters.get('cn_no');
+  if (existing) {
+    next = existing.value;
+  }
+
+  const num = String(next).padStart(pad, '0');
+  const cnNo = `${prefix}${sep}${num}`;
+
+  await db.counters.put({ id: 'cn_no', key: 'cn_no', value: next + 1 });
+
+  return cnNo;
+}
+
+export async function createCreditNote(data) {
+  const cnNo = await getNextCreditNoteNo();
+  const cn = {
+    cnNo,
+    invoiceId: data.invoiceId || null,
+    customerId: data.customerId || '',
+    customerName: data.customerName || '',
+    customerGstin: data.customerGstin || '',
+    date: data.date || new Date().toISOString().split('T')[0],
+    items: data.items || [],
+    subtotal: Number(data.subtotal) || 0,
+    taxAmount: Number(data.taxAmount) || 0,
+    total: Number(data.total) || 0,
+    reason: data.reason || '',
+    status: 'issued',
+    createdAt: new Date().toISOString(),
+  };
+  const id = await db.creditNotes.add(cn);
+  await logActivity('credit_note', `Credit Note ${cnNo} created for ₹${cn.total.toFixed(2)}`);
+  return { ...cn, id };
+}
+
+export async function getCreditNotesForInvoice(invoiceId) {
+  return db.creditNotes.where('invoiceId').equals(invoiceId).reverse().toArray();
 }
 
 export default db;

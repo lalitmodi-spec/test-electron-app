@@ -16,6 +16,7 @@ const navItems = [
   { key: '/invoices', icon: FileTextOutlined, label: 'Invoices' },
   { key: '/invoice/new', icon: PlusOutlined, label: 'New Invoice' },
   { key: '/payments', icon: DollarOutlined, label: 'Payments' },
+  { key: '/credit-notes', icon: AuditOutlined, label: 'Credit Notes' },
   { key: '/customers', icon: UserOutlined, label: 'Customers' },
   { key: '/products', icon: ShoppingOutlined, label: 'Products' },
   { key: '/expenses', icon: WalletOutlined, label: 'Expenses' },

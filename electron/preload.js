@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     deleteLogo: () => ipcRenderer.invoke("delete-logo"),
     saveCsv: (data) => ipcRenderer.invoke("save-csv", data),
     saveFile: (data) => ipcRenderer.invoke("save-file", data),
+    sendEmail: (data) => ipcRenderer.invoke("send-email", data),
 });

@@ -9,7 +9,7 @@ import {
   DollarOutlined, TruckOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import db, { getSettings, logActivity, recordPayment, getPaymentsForInvoice } from '../db';
+import db, { getSettings, logActivity, recordPayment, getPaymentsForInvoice, getNextInvoiceNo } from '../db';
 import { generateInvoicePDF } from '../utils/pdfExport';
 import TemplatePreview from '../pdf/TemplatePreview';
 
@@ -32,6 +32,7 @@ export default function InvoiceForm() {
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const [showTransport, setShowTransport] = useState(false);
   const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
+  const [invoiceNo, setInvoiceNo] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -43,6 +44,12 @@ export default function InvoiceForm() {
       setProducts(prods);
       setSettings(s);
       setSelectedTemplate(s.invoiceTemplate || 'professional');
+      if (!isEdit) {
+        getNextInvoiceNo().then(nextNo => {
+          setInvoiceNo(nextNo);
+          form.setFieldsValue({ invoiceNo: nextNo });
+        });
+      }
       if (isEdit) {
         db.invoices.get(Number(id)).then(inv => {
           if (inv) {
@@ -304,7 +311,7 @@ export default function InvoiceForm() {
 
       <Card>
         <Form form={form} layout="vertical" initialValues={{
-          date: dayjs(), status: 'unpaid', invoiceNo: `INV-${Date.now().toString(36).toUpperCase()}`,
+          date: dayjs(), status: 'unpaid', invoiceNo: 'Loading...',
         }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={6}>
