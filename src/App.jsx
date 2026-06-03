@@ -18,11 +18,14 @@ import Reports from './components/Reports';
 import CreditNotes from './components/CreditNotes';
 import About from './components/About';
 import SplashScreen from './components/SplashScreen';
+import PinGate from './components/PinGate';
 import { App as AntApp } from 'antd';
 import { LanguageProvider } from './i18n/LanguageContext';
+import db from './db';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const [pinRequired, setPinRequired] = useState(null);
 
   useEffect(() => {
     const ready = () => setLoading(false);
@@ -34,36 +37,47 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!loading) {
+      db.settings.get('appPin').then(s => {
+        setPinRequired(s && s.value ? true : false);
+      });
+    }
+  }, [loading]);
+
   return (
     <>
       <LanguageProvider>
         {loading && <SplashScreen onFinish={() => setLoading(false)} />}
-        <AntApp style={{ display: loading ? 'none' : 'block' }}>
-          <HashRouter>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/invoices" element={<Invoices />} />
-                <Route path="/invoice/new" element={<InvoiceForm />} />
-                <Route path="/invoice/edit/:id" element={<InvoiceForm />} />
-                <Route path="/payments" element={<Payments />} />
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/expenses" element={<Expenses />} />
-                <Route path="/purchases" element={<Purchases />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/vendors" element={<Vendors />} />
-                <Route path="/quotations" element={<Quotations />} />
-                <Route path="/quotation/new" element={<QuotationForm />} />
-                <Route path="/quotation/edit/:id" element={<QuotationForm />} />
-                <Route path="/activity" element={<ActivityLog />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/credit-notes" element={<CreditNotes />} />
-                <Route path="/about" element={<About />} />
-              </Route>
-            </Routes>
-          </HashRouter>
-        </AntApp>
+        {!loading && pinRequired && <PinGate onUnlock={() => setPinRequired(false)} />}
+        {!loading && !pinRequired && (
+          <AntApp style={{ display: 'block' }}>
+            <HashRouter>
+              <Routes>
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/invoices" element={<Invoices />} />
+                  <Route path="/invoice/new" element={<InvoiceForm />} />
+                  <Route path="/invoice/edit/:id" element={<InvoiceForm />} />
+                  <Route path="/payments" element={<Payments />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/expenses" element={<Expenses />} />
+                  <Route path="/purchases" element={<Purchases />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/vendors" element={<Vendors />} />
+                  <Route path="/quotations" element={<Quotations />} />
+                  <Route path="/quotation/new" element={<QuotationForm />} />
+                  <Route path="/quotation/edit/:id" element={<QuotationForm />} />
+                  <Route path="/activity" element={<ActivityLog />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/credit-notes" element={<CreditNotes />} />
+                  <Route path="/about" element={<About />} />
+                </Route>
+              </Routes>
+            </HashRouter>
+          </AntApp>
+        )}
       </LanguageProvider>
     </>
   );

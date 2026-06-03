@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal } from 'antd';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -118,7 +118,16 @@ export default function Settings() {
     }
   }
 
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pinForm] = Form.useForm();
+
   async function handleClearData() {
+    if (clearConfirmText !== 'DELETE') {
+      message.warning(t('common.clearDataType'));
+      return;
+    }
     await db.customers.clear();
     await db.products.clear();
     await db.invoices.clear();
@@ -126,6 +135,25 @@ export default function Settings() {
     await db.activity.clear();
     if (db.payments) await db.payments.clear();
     message.success(t('msg.dataCleared'));
+    setClearModalOpen(false);
+    setClearConfirmText('');
+  }
+
+  async function handleSavePin() {
+    const values = await pinForm.validateFields();
+    if (values.newPin !== values.confirmPin) {
+      message.warning(t('common.pinMatch'));
+      return;
+    }
+    await db.settings.put({ id: 'appPin', key: 'appPin', value: values.newPin });
+    message.success(t('common.pinSaved'));
+    setPinModalOpen(false);
+    pinForm.resetFields();
+  }
+
+  async function handleRemovePin() {
+    await db.settings.delete('appPin');
+    message.success(t('common.pinRemoved'));
   }
 
   const businessTypeOptions = [
@@ -433,6 +461,58 @@ export default function Settings() {
       ),
     },
     {
+      key: 'security',
+      label: <Space><SafetyCertificateOutlined />{t('settings.security')}</Space>,
+      children: (
+        <div>
+          <Alert message={<Space><SafetyCertificateOutlined />{t('settings.security')}</Space>}
+            description={t('common.pinDesc')}
+            type="info" showIcon icon={<SafetyCertificateOutlined />}
+            style={{ marginBottom: 16, borderRadius: 10 }} />
+          <Card styles={{
+            body: {
+              padding: '24px 28px',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.08) 100%)',
+              borderRadius: 12,
+              border: '1px solid rgba(99,102,241,0.15)',
+            }
+          }}>
+            <Row gutter={[20, 20]} align="middle">
+              <Col xs={24} md={14}>
+                <Space direction="vertical" size={8}>
+                  <Space>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 12,
+                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <LockOutlined style={{ fontSize: 18, color: 'white' }} />
+                    </div>
+                    <Text strong style={{ fontSize: 16 }}>{t('common.pin')}</Text>
+                  </Space>
+                  <Text type="secondary" style={{ fontSize: 13 }}>{t('common.pinDesc')}</Text>
+                </Space>
+              </Col>
+              <Col xs={24} md={10}>
+                <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                  <Button type="primary" icon={<LockOutlined />} block
+                    onClick={() => setPinModalOpen(true)}
+                    style={{ height: 40, borderRadius: 10 }}>
+                    {t('common.pinSetup')}
+                  </Button>
+                  <Button danger icon={<DeleteOutlined />} block
+                    onClick={handleRemovePin}
+                    style={{ height: 40, borderRadius: 10 }}>
+                    {t('common.pinRemove')}
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </div>
+      ),
+    },
+    {
       key: 'data',
       label: t('settings.dataManagement'),
       children: (
@@ -443,9 +523,7 @@ export default function Settings() {
           <Space wrap>
             <Button icon={<DownloadOutlined />} onClick={handleExport}>{t('settings.exportData')}</Button>
             <Button icon={<UploadOutlined />} onClick={handleImport} disabled={importing}>{t('settings.importData')}</Button>
-            <Popconfirm title={t('msg.confirmDeleteTitle')} description={t('msg.noUndo')} onConfirm={handleClearData}>
-              <Button danger icon={<DeleteOutlined />}>{t('settings.clearData')}</Button>
-            </Popconfirm>
+            <Button danger icon={<DeleteOutlined />} onClick={() => setClearModalOpen(true)}>{t('settings.clearData')}</Button>
           </Space>
         </div>
       ),
@@ -475,6 +553,36 @@ export default function Settings() {
         visible={templatePreviewOpen}
         onClose={() => setTemplatePreviewOpen(false)}
       />
+
+      <Modal title={t('common.clearDataConfirm')} open={clearModalOpen}
+        onCancel={() => { setClearModalOpen(false); setClearConfirmText(''); }}
+        onOk={handleClearData} okText={t('common.clearDataBtn')} okButtonProps={{ danger: true, disabled: clearConfirmText !== 'DELETE' }}>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Text type="danger" strong>{t('common.clearDataWarn')}</Text>
+          <div>{t('common.clearDataType')}</div>
+          <Input value={clearConfirmText} onChange={e => setClearConfirmText(e.target.value)}
+            placeholder={t('common.clearDataPlaceholder')} style={{ width: '100%' }} />
+        </Space>
+      </Modal>
+
+      <Modal title={t('common.pinSetup')} open={pinModalOpen}
+        onCancel={() => { setPinModalOpen(false); pinForm.resetFields(); }}
+        onOk={handleSavePin} okText={t('common.pinSaved')}>
+        <Form form={pinForm} layout="vertical">
+          <Form.Item name="newPin" label={t('common.pinNew')} rules={[
+            { required: true, message: t('common.pinRequired') },
+            { len: 6, message: t('common.pinDigit') },
+            { pattern: /^\d{6}$/, message: t('common.pinDigit') },
+          ]}>
+            <Input.Password maxLength={6} placeholder={t('common.pinNew')} autoFocus />
+          </Form.Item>
+          <Form.Item name="confirmPin" label={t('common.pinConfirm')} rules={[
+            { required: true, message: t('common.pinMatch') },
+          ]}>
+            <Input.Password maxLength={6} placeholder={t('common.pinConfirm')} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
