@@ -6,28 +6,44 @@ import {
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
   MenuOutlined, SunOutlined, MoonOutlined, SearchOutlined, AuditOutlined,
   DollarOutlined, ShoppingCartOutlined, TeamOutlined, HistoryOutlined,
-  FormOutlined
+  FormOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
 import { getSettings } from '../db';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const { Sider, Header, Content } = Layout;
 
-const navItems = [
-  { key: '/', icon: DashboardOutlined, label: 'Dashboard' },
-  { key: '/invoices', icon: FileTextOutlined, label: 'Invoices' },
-  { key: '/invoice/new', icon: PlusOutlined, label: 'New Invoice' },
-  { key: '/payments', icon: DollarOutlined, label: 'Payments' },
-  { key: '/credit-notes', icon: AuditOutlined, label: 'Credit Notes' },
-  { key: '/quotations', icon: FormOutlined, label: 'Quotations' },
-  { key: '/customers', icon: UserOutlined, label: 'Customers' },
-  { key: '/vendors', icon: TeamOutlined, label: 'Vendors' },
-  { key: '/purchases', icon: ShoppingCartOutlined, label: 'Purchases' },
-  { key: '/products', icon: ShoppingOutlined, label: 'Products' },
-  { key: '/expenses', icon: WalletOutlined, label: 'Expenses' },
-  { key: '/reports', icon: BarChartOutlined, label: 'Reports' },
-  { key: '/activity', icon: HistoryOutlined, label: 'Activity Log' },
-  { key: '/settings', icon: SettingOutlined, label: 'Settings' },
-];
+function NavItems() {
+  const { t } = useLanguage();
+  return [
+    { key: '/', icon: DashboardOutlined, label: t('nav.dashboard') },
+    {
+      key: 'invoices_group', icon: FileTextOutlined, label: t('nav.invoices'),
+      children: [
+        { key: '/invoices', label: t('nav.allInvoices') },
+        { key: '/invoice/new', label: t('nav.newInvoice') },
+      ],
+    },
+    { key: '/payments', icon: DollarOutlined, label: t('nav.payments') },
+    { key: '/credit-notes', icon: AuditOutlined, label: t('nav.creditNotes') },
+    { key: '/customers', icon: UserOutlined, label: t('nav.customers') },
+    { key: '/vendors', icon: TeamOutlined, label: t('nav.vendors') },
+    { key: '/purchases', icon: ShoppingCartOutlined, label: t('nav.purchases') },
+    { key: '/products', icon: ShoppingOutlined, label: t('nav.products') },
+    { key: '/expenses', icon: WalletOutlined, label: t('nav.expenses') },
+    { key: '/reports', icon: BarChartOutlined, label: t('nav.reports') },
+    { key: '/activity', icon: HistoryOutlined, label: t('nav.activityLog') },
+    {
+      key: 'quotations_group', icon: FormOutlined, label: t('nav.quotations'),
+      children: [
+        { key: '/quotations', label: t('nav.allQuotations') },
+        { key: '/quotation/new', label: t('nav.newQuotation') },
+      ],
+    },
+    { key: '/settings', icon: SettingOutlined, label: t('nav.settings') },
+    { key: '/about', icon: InfoCircleOutlined, label: t('nav.about') },
+  ];
+}
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -35,6 +51,7 @@ export default function AppLayout() {
   const [themeMode, setThemeMode] = useState('dark');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const { t, lang, setLang, isHindi } = useLanguage();
 
   useEffect(() => {
     getSettings().then(s => { if (s.theme) setThemeMode(s.theme); });
@@ -113,8 +130,8 @@ export default function AppLayout() {
           <AuditOutlined style={{ color: 'white', fontSize: 16 }} />
         </div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: 'white', lineHeight: 1.2 }}>BillingPro</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>GST Invoice Manager</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: 'white', lineHeight: 1.2 }}>{t('header.billingPro')}</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{t('header.subtitle')}</div>
         </div>
       </div>
       <Menu
@@ -125,10 +142,12 @@ export default function AppLayout() {
           navigate(key);
           if (isMobile) setDrawerOpen(false);
         }}
-        items={navItems.map(item => ({
-          key: item.key,
-          icon: <item.icon style={{ fontSize: 15 }} />,
-          label: item.label,
+        items={NavItems().map(item => ({
+          ...item,
+          icon: item.icon ? <item.icon style={{ fontSize: 15 }} /> : undefined,
+          children: item.children?.map(child => ({
+            ...child,
+          })),
         }))}
         style={{
           flex: 1, borderInlineEnd: 'none', padding: '4px 8px',
@@ -139,7 +158,7 @@ export default function AppLayout() {
         padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)',
         fontSize: 11, color: 'rgba(255,255,255,0.25)'
       }}>
-        BillingPro v3.0
+        {t('header.version')}
       </div>
     </div>
   );
@@ -177,7 +196,7 @@ export default function AppLayout() {
             )}
             <Input
               prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
-              placeholder="Search invoices, customers..."
+              placeholder={t('header.searchPlaceholder')}
               style={{ maxWidth: 320, background: 'var(--bg-body)', border: 'none', borderRadius: 8 }}
               onPressEnter={(e) => {
                 const q = e.target.value.trim().toLowerCase();
@@ -185,6 +204,13 @@ export default function AppLayout() {
               }}
             />
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <Button
+                type="text"
+                onClick={() => setLang(isHindi ? 'en' : 'hi')}
+                style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}
+              >
+                {isHindi ? 'EN' : 'हिं'}
+              </Button>
               <Button
                 type="text"
                 icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}

@@ -9,11 +9,13 @@ import {
   PlusCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import db, { logActivity, getPurchaseSummary, adjustProductStock } from '../db';
+import db, { getSettings, logActivity, getPurchaseSummary, adjustProductStock } from '../db';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
 
 export default function Products() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -25,11 +27,19 @@ export default function Products() {
   const [purchaseSummary, setPurchaseSummary] = useState({});
   const [showStockAdjust, setShowStockAdjust] = useState(null);
   const [adjustForm] = Form.useForm();
+  const [productCategories, setProductCategories] = useState([]);
 
   async function load() {
     setLoading(true);
-    const data = await db.products.reverse().toArray();
+    const [data, settings] = await Promise.all([
+      db.products.reverse().toArray(),
+      getSettings(),
+    ]);
     setProducts(data);
+    if (settings.productCategories) {
+      try { setProductCategories(JSON.parse(settings.productCategories)); }
+      catch { setProductCategories([]); }
+    }
     const summary = {};
     for (const p of data) {
       summary[p.id] = await getPurchaseSummary(p.id);
@@ -43,7 +53,7 @@ export default function Products() {
   function openCreate() {
     setEdit(null);
     form.resetFields();
-    form.setFieldsValue({ taxRate: 18, unit: 'pcs', stock: 0, minStock: 0 });
+    form.setFieldsValue({ taxRate: 18, unit: 'pcs', stock: 0, minStock: 0, taxPreference: 'taxable' });
     setShowForm(true);
   }
 
@@ -59,11 +69,11 @@ export default function Products() {
     if (edit) {
       await db.products.update(edit.id, data);
       await logActivity('update', `Updated product: ${data.name}`);
-      message.success('Product updated');
+      message.success(t('msg.updated'));
     } else {
       await db.products.add({ ...data, createdAt: new Date().toISOString() });
       await logActivity('create', `Added product: ${data.name}`);
-      message.success('Product added');
+      message.success(t('msg.saved'));
     }
     setShowForm(false);
     load();
@@ -72,7 +82,7 @@ export default function Products() {
   async function handleDelete(id, name) {
     await db.products.delete(id);
     await logActivity('delete', `Deleted product: ${name}`);
-    message.success(`Deleted ${name}`);
+    message.success(`${t('msg.deleted')} ${name}`);
     load();
   }
 
@@ -85,7 +95,7 @@ export default function Products() {
   async function handleStockAdjust() {
     const values = await adjustForm.validateFields();
     const newStock = await adjustProductStock(showStockAdjust.id, Number(values.adjustment), values.reason);
-    message.success(`Stock adjusted to ${newStock}`);
+    message.success(`${t('msg.stockAdjusted')}: ${newStock}`);
     setShowStockAdjust(null);
     load();
   }
@@ -105,13 +115,15 @@ export default function Products() {
 
   const columns = [
     {
-      title: 'Name', dataIndex: 'name', key: 'name',
-      render: (t) => <Text strong>{t}</Text>,
+      title: t('product.productName'), dataIndex: 'name', key: 'name',
+      render: (val) => <Text strong>{val}</Text>,
     },
-    { title: 'HSN', dataIndex: 'hsn', key: 'hsn', render: (t) => t || '-', responsive: ['md'] },
-    { title: 'Unit', dataIndex: 'unit', key: 'unit', render: (t) => t || 'pcs', width: 60 },
+    { title: t('product.sku'), dataIndex: 'sku', key: 'sku', render: (val) => val ? <Text code style={{ fontSize: 11 }}>{val}</Text> : '-', responsive: ['md'] },
+    { title: t('product.category'), dataIndex: 'category', key: 'category', render: (val) => val ? <Tag>{val}</Tag> : '-', responsive: ['lg'] },
+    { title: t('product.hsn'), dataIndex: 'hsn', key: 'hsn', render: (val) => val || '-', responsive: ['md'] },
+    { title: t('product.unit'), dataIndex: 'unit', key: 'unit', render: (val) => val || 'pcs', width: 60 },
     {
-      title: 'Price', dataIndex: 'price', key: 'price', align: 'right',
+      title: t('product.sellingPrice'), dataIndex: 'price', key: 'price', align: 'right',
       render: (v, r) => (
         <Space size={2} direction="vertical" style={{ textAlign: 'right', lineHeight: 1.2 }}>
           <Text>₹{Number(v).toFixed(2)}</Text>
@@ -121,7 +133,7 @@ export default function Products() {
       sorter: (a, b) => Number(a.price) - Number(b.price),
     },
     {
-      title: 'Stock', dataIndex: 'stock', key: 'stock', align: 'center',
+      title: t('product.stock'), dataIndex: 'stock', key: 'stock', align: 'center',
       render: (v, r) => {
         const stock = Number(v) || 0;
         const min = Number(r.minStock) || 0;
@@ -132,7 +144,7 @@ export default function Products() {
           <div style={{ minWidth: 120 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
               <Tag color={isOut ? 'error' : isLow ? 'warning' : 'success'} style={{ margin: 0 }}>
-                {isOut ? 'Out of Stock' : isLow ? 'Low' : `${stock}`}
+                {isOut ? t('product.outOfStock') : isLow ? t('product.lowStock') : `${stock}`}
               </Tag>
               <Text type="secondary" style={{ fontSize: 11 }}>{r.unit || 'pcs'}</Text>
             </div>
@@ -147,7 +159,7 @@ export default function Products() {
               />
             )}
             {min > 0 && (
-              <Text type="secondary" style={{ fontSize: 10 }}>min: {min}</Text>
+              <Text type="secondary" style={{ fontSize: 10 }}>{t('product.minStock')}: {min}</Text>
             )}
           </div>
         );
@@ -155,7 +167,7 @@ export default function Products() {
       sorter: (a, b) => (Number(a.stock) || 0) - (Number(b.stock) || 0),
     },
     {
-      title: 'Purchased', key: 'purchased', align: 'center', width: 100,
+      title: t('product.purchased'), key: 'purchased', align: 'center', width: 100,
       render: (_, r) => {
         const s = purchaseSummary[r.id];
         if (!s || s.count === 0) return <Text type="secondary">-</Text>;
@@ -171,19 +183,19 @@ export default function Products() {
       title: '', key: 'actions', width: 170, align: 'right',
       render: (_, r) => (
         <Space>
-          <Tooltip title="Adjust Stock">
+          <Tooltip title={t('product.adjustStock')}>
             <Button size="small" icon={<PlusCircleOutlined />}
               style={{ color: '#13c2c2' }}
               onClick={() => openStockAdjust(r)} />
           </Tooltip>
-          <Tooltip title="Record Purchase">
+          <Tooltip title={t('product.recordPurchase')}>
             <Button size="small" icon={<ShoppingCartOutlined />}
               style={{ color: '#52c41a' }}
               onClick={() => navigate('/purchases')} />
           </Tooltip>
-          <Tooltip title="Edit"><Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
-          <Popconfirm title={`Delete ${r.name}?`} onConfirm={() => handleDelete(r.id, r.name)}>
-            <Tooltip title="Delete"><Button size="small" danger icon={<DeleteOutlined />} /></Tooltip>
+          <Tooltip title={t('common.edit')}><Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
+          <Popconfirm title={`${t('common.delete')} ${r.name}?`} onConfirm={() => handleDelete(r.id, r.name)}>
+            <Tooltip title={t('common.delete')}><Button size="small" danger icon={<DeleteOutlined />} /></Tooltip>
           </Popconfirm>
         </Space>
       )
@@ -194,19 +206,19 @@ export default function Products() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={3} style={{ margin: 0 }}>Products & Inventory</Title>
+          <Title level={3} style={{ margin: 0 }}>{t('product.title')}</Title>
           <Text type="secondary">
-            {products.length} products
-            {lowStockCount > 0 && <Text type="danger"> • {lowStockCount} low stock</Text>}
+            {products.length} {t('product.products').toLowerCase()}
+            {lowStockCount > 0 && <Text type="danger"> • {lowStockCount} {t('product.lowStock').toLowerCase()}</Text>}
           </Text>
         </Col>
         <Col>
           <Space>
             <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/purchases')}>
-              Purchases
+              {t('product.purchased')}
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Add Product
+              {t('product.addTitle')}
             </Button>
           </Space>
         </Col>
@@ -216,7 +228,7 @@ export default function Products() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
             <Statistic
-              title={<Space size={4}><ShoppingOutlined style={{ color: '#6366f1' }} />Products</Space>}
+              title={<Space size={4}><ShoppingOutlined style={{ color: '#6366f1' }} />{t('product.products')}</Space>}
               value={products.length}
               valueStyle={{ color: '#6366f1', fontSize: 22 }}
             />
@@ -225,7 +237,7 @@ export default function Products() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
             <Statistic
-              title={<Space size={4}><BarChartOutlined style={{ color: '#52c41a' }} />Inventory Value</Space>}
+              title={<Space size={4}><BarChartOutlined style={{ color: '#52c41a' }} />{t('product.inventoryValue')}</Space>}
               value={totalValue} precision={2} prefix="₹"
               valueStyle={{ color: '#52c41a', fontSize: 22 }}
             />
@@ -234,7 +246,7 @@ export default function Products() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
             <Statistic
-              title={<Space size={4}><WarningOutlined style={{ color: lowStockCount > 0 ? '#faad14' : '#52c41a' }} />Low Stock Items</Space>}
+              title={<Space size={4}><WarningOutlined style={{ color: lowStockCount > 0 ? '#faad14' : '#52c41a' }} />{t('product.lowStockItems')}</Space>}
               value={lowStockCount}
               valueStyle={{ color: lowStockCount > 0 ? '#faad14' : '#52c41a', fontSize: 22 }}
             />
@@ -246,110 +258,149 @@ export default function Products() {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={8}>
-              <Input prefix={<SearchOutlined />} placeholder="Search products..." value={search}
+              <Input prefix={<SearchOutlined />} placeholder={t('placeholder.search')} value={search}
                 onChange={e => setSearch(e.target.value)} allowClear />
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Select value={stockFilter} onChange={setStockFilter} placeholder="Stock filter" allowClear style={{ width: '100%' }}>
-                <Select.Option value="in">In Stock</Select.Option>
-                <Select.Option value="low">Low Stock</Select.Option>
-                <Select.Option value="out">Out of Stock</Select.Option>
+              <Select value={stockFilter} onChange={setStockFilter} placeholder={t('product.stock')} allowClear style={{ width: '100%' }}>
+                <Select.Option value="in">{t('product.inStock')}</Select.Option>
+                <Select.Option value="low">{t('product.lowStock')}</Select.Option>
+                <Select.Option value="out">{t('product.outOfStock')}</Select.Option>
               </Select>
             </Col>
           </Row>
         </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
-          pagination={{ pageSize: 15, showTotal: (t) => `${t} products` }}
-          scroll={{ x: 900 }} locale={{ emptyText: 'No products yet' }} />
+          pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('product.products').toLowerCase()}` }}
+          scroll={{ x: 900 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
       <Modal
-        title={edit ? 'Edit Product' : 'Add Product'}
+        title={edit ? t('product.editTitle') : t('product.addTitle')}
         open={showForm}
         onCancel={() => setShowForm(false)}
         onOk={handleSave}
-        okText={edit ? 'Update' : 'Save'}
+        okText={edit ? t('common.update') : t('common.save')}
         width={500}
         destroyOnClose
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Product Name" rules={[{ required: true }]}>
-            <Input placeholder="Product name" />
+          <Form.Item name="name" label={`${t('product.productName')} *`} rules={[{ required: true }]}>
+            <Input placeholder={t('product.productName')} />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="hsn" label="HSN Code"><Input placeholder="HSN" /></Form.Item>
+              <Form.Item name="sku" label={t('product.sku')}><Input placeholder={t('product.sku')} /></Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="unit" label="Unit"><Input placeholder="pcs, kg..." /></Form.Item>
+              <Form.Item name="barcode" label={t('product.barcode')}><Input placeholder={t('product.barcode')} /></Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="price" label="Selling Price (₹)" rules={[{ required: true }]}>
+              <Form.Item name="hsn" label={t('product.hsn')}><Input placeholder={t('placeholder.hsn')} /></Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="unit" label={t('product.unit')}><Input placeholder={t('product.unit')} /></Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="category" label={t('product.category')}>
+                <Select allowClear>
+                  {productCategories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="brand" label={t('product.brand')}><Input placeholder={t('product.brand')} /></Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="price" label={`${t('product.sellingPrice')} (₹)`} rules={[{ required: true }]}>
                 <InputNumber min={0} step={0.01} prefix="₹" style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="taxRate" label="Tax Rate">
+              <Form.Item name="purchasePrice" label={`${t('product.purchasePrice')} (₹)`}>
+                <InputNumber min={0} step={0.01} prefix="₹" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="taxRate" label={t('product.taxRate')}>
                 <Select>
-                  {[0, 5, 12, 18, 28].map(t => <Select.Option key={t} value={t}>{t}%</Select.Option>)}
+                  {[0, 5, 12, 18, 28].map(rate => <Select.Option key={rate} value={rate}>{t('taxRates.' + rate)}%</Select.Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="taxPreference" label={t('product.taxPreference')}>
+                <Select>
+                  <Select.Option value="taxable">{t('product.taxable')}</Select.Option>
+                  <Select.Option value="exempt">{t('product.exempt')}</Select.Option>
+                  <Select.Option value="nil_rated">{t('product.nilRated')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="stock" label="Current Stock">
+              <Form.Item name="stock" label={t('product.currentStock')}>
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="minStock" label="Min Stock Alert">
+              <Form.Item name="minStock" label={t('product.minStock')}>
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item name="description" label={t('product.description')}>
+            <Input.TextArea rows={2} placeholder={t('placeholder.description')} />
+          </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={<Space><PlusCircleOutlined style={{ color: '#13c2c2' }} />Adjust Stock: {showStockAdjust?.name}</Space>}
+        title={<Space><PlusCircleOutlined style={{ color: '#13c2c2' }} />{t('product.adjustStock')}: {showStockAdjust?.name}</Space>}
         open={!!showStockAdjust}
         onCancel={() => setShowStockAdjust(null)}
         onOk={handleStockAdjust}
-        okText="Adjust"
+        okText={t('product.adjustStock')}
         width={420}
         destroyOnClose
       >
         <div style={{ marginBottom: 16, padding: 12, background: 'rgba(99,102,241,0.06)', borderRadius: 8 }}>
-          <Text type="secondary">Current Stock:</Text>
+          <Text type="secondary">{t('product.currentStock')}:</Text>
           <Text strong style={{ fontSize: 18, marginLeft: 8 }}>
             {Number(showStockAdjust?.stock) || 0} {showStockAdjust?.unit || 'pcs'}
           </Text>
           {Number(showStockAdjust?.minStock) > 0 && (
             <Text type="secondary" style={{ marginLeft: 16 }}>
-              Min: {showStockAdjust?.minStock}
+              {t('product.minStock')}: {showStockAdjust?.minStock}
             </Text>
           )}
         </div>
         <Form form={adjustForm} layout="vertical">
-          <Form.Item name="adjustment" label="Adjustment (+ to add, - to remove)" rules={[{ required: true }]}>
+          <Form.Item name="adjustment" label={t('product.adjustment')} rules={[{ required: true }]}>
             <InputNumber
               style={{ width: '100%' }}
-              placeholder="e.g. 10 or -5"
+              placeholder={t('product.adjustment')}
               onChange={(val) => {
                 const newVal = (Number(showStockAdjust?.stock) || 0) + (Number(val) || 0);
                 adjustForm.setFieldsValue({ newStock: Math.max(0, newVal) });
               }}
             />
           </Form.Item>
-          <Form.Item name="newStock" label="New Stock (preview)">
+          <Form.Item name="newStock" label={t('product.newStock')}>
             <InputNumber disabled style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="reason" label="Reason">
-            <Input placeholder="e.g. Damaged, Return, Manual count" />
+          <Form.Item name="reason" label={t('product.reason')}>
+            <Input placeholder={t('placeholder.reason')} />
           </Form.Item>
         </Form>
       </Modal>

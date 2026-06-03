@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   Table, Card, Button, Input, Select, Space, Modal, Form, Typography,
   Row, Col, Popconfirm, message, Tag, DatePicker, InputNumber
@@ -11,9 +12,16 @@ import dayjs from 'dayjs';
 import db, { getSettings, updateSetting, logActivity } from '../db';
 
 const { Title, Text } = Typography;
-const defaultCategories = ['Office Supplies', 'Utilities', 'Travel', 'Food', 'Rent', 'Maintenance', 'Salary', 'Marketing', 'Software', 'Other'];
 
 export default function Expenses() {
+  const { t } = useLanguage();
+  const defaultCategories = [
+    t('expenseCategories.officeSupplies'), t('expenseCategories.utilities'),
+    t('expenseCategories.travel'), t('expenseCategories.food'),
+    t('expenseCategories.rent'), t('expenseCategories.maintenance'),
+    t('expenseCategories.salary'), t('expenseCategories.marketing'),
+    t('expenseCategories.software'), t('expenseCategories.other'),
+  ];
   const [expenses, setExpenses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [showCatManager, setShowCatManager] = useState(false);
@@ -44,7 +52,7 @@ export default function Expenses() {
   function openCreate() {
     setEdit(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), category: 'Other' });
+    form.setFieldsValue({ date: dayjs(), category: t('expenseCategories.other') });
     setShowForm(true);
   }
 
@@ -67,11 +75,11 @@ export default function Expenses() {
     if (edit) {
       await db.expenses.update(edit.id, data);
       await logActivity('update', `Updated expense: ${data.title}`);
-      message.success('Expense updated');
+      message.success(t('msg.updated'));
     } else {
       await db.expenses.add({ ...data, createdAt: new Date().toISOString() });
       await logActivity('create', `Added expense: ${data.title} - ₹${data.amount}`);
-      message.success('Expense added');
+      message.success(t('msg.saved'));
     }
     setShowForm(false);
     load();
@@ -80,7 +88,7 @@ export default function Expenses() {
   async function handleDelete(id, title) {
     await db.expenses.delete(id);
     await logActivity('delete', `Deleted expense: ${title}`);
-    message.success(`Deleted: ${title}`);
+    message.success(t('msg.deleted'));
     load();
   }
 
@@ -91,7 +99,7 @@ export default function Expenses() {
     setCategories(updated);
     await updateSetting('expenseCategories', JSON.stringify(updated));
     setNewCategory('');
-    message.success(`Category "${name}" added`);
+    message.success(`${t('msg.saved')}`);
   }
 
   async function removeCategory(cat) {
@@ -99,7 +107,7 @@ export default function Expenses() {
     const updated = categories.filter(c => c !== cat);
     setCategories(updated);
     await updateSetting('expenseCategories', JSON.stringify(updated));
-    message.success(`Category "${cat}" removed`);
+    message.success(`${t('msg.deleted')}`);
   }
 
   const filtered = expenses.filter(e =>
@@ -113,25 +121,33 @@ export default function Expenses() {
 
   const columns = [
     {
-      title: 'Title', dataIndex: 'title', key: 'title', render: (t) => <Text strong>{t}</Text>,
+      title: t('expense.expenseTitle'), dataIndex: 'title', key: 'title', render: (t) => <Text strong>{t}</Text>,
     },
     {
-      title: 'Category', dataIndex: 'category', key: 'category',
+      title: t('expense.category'), dataIndex: 'category', key: 'category',
       render: (t) => <Tag>{t}</Tag>,
       filters: categories.map(c => ({ text: c, value: c })),
       onFilter: (value, record) => record.category === value,
     },
-    { title: 'Date', dataIndex: 'date', key: 'date', sorter: (a, b) => a.date?.localeCompare(b.date) },
+    { title: t('expense.date'), dataIndex: 'date', key: 'date', sorter: (a, b) => a.date?.localeCompare(b.date) },
     {
-      title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right',
+      title: t('expense.amount'), dataIndex: 'amount', key: 'amount', align: 'right',
       render: (v) => <Text strong>₹{Number(v).toFixed(2)}</Text>,
       sorter: (a, b) => Number(a.amount) - Number(b.amount),
+    },
+    {
+      title: t('expense.vendorName'), dataIndex: 'vendorName', key: 'vendorName',
+      render: (t) => t || '-', responsive: ['md'],
+    },
+    {
+      title: t('expense.billNumber'), dataIndex: 'billNumber', key: 'billNumber',
+      render: (t) => t || '-', responsive: ['lg'],
     },
     {
       title: '', key: 'actions', width: 100, align: 'right',
       render: (_, r) => (
         <Space>
-          <Popconfirm title={`Delete ${r.title}?`} onConfirm={() => handleDelete(r.id, r.title)}>
+          <Popconfirm title={t('msg.confirmDelete')} onConfirm={() => handleDelete(r.id, r.title)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -143,13 +159,13 @@ export default function Expenses() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={3} style={{ margin: 0 }}>Expenses</Title>
+          <Title level={3} style={{ margin: 0 }}>{t('expense.title')}</Title>
           <Text type="secondary">Track your business spending</Text>
         </Col>
         <Col>
           <Space>
-            <Button icon={<SettingOutlined />} onClick={() => setShowCatManager(true)}>Categories</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Expense</Button>
+            <Button icon={<SettingOutlined />} onClick={() => setShowCatManager(true)}>{t('expense.categories')}</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('expense.addTitle')}</Button>
           </Space>
         </Col>
       </Row>
@@ -157,7 +173,7 @@ export default function Expenses() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
           <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}>
-            <Text type="secondary">Total Expenses</Text>
+            <Text type="secondary">{t('expense.totalExpenses')}</Text>
             <div><Title level={4} style={{ margin: 0, color: '#faad14' }}>₹{total.toFixed(2)}</Title></div>
           </Card>
         </Col>
@@ -175,11 +191,11 @@ export default function Expenses() {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={8}>
-              <Input prefix={<SearchOutlined />} placeholder="Search expenses..."
+              <Input prefix={<SearchOutlined />} placeholder={t('expense.search')}
                 value={search} onChange={e => setSearch(e.target.value)} allowClear />
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Select value={catFilter} onChange={setCatFilter} placeholder="All Categories" allowClear style={{ width: '100%' }}>
+              <Select value={catFilter} onChange={setCatFilter} placeholder={`${t('common.all')} ${t('expense.categories')}`} allowClear style={{ width: '100%' }}>
                 {categories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
               </Select>
             </Col>
@@ -187,47 +203,89 @@ export default function Expenses() {
         </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
-          pagination={{ pageSize: 15, showTotal: (t) => `${t} expenses` }}
-          scroll={{ x: 600 }} locale={{ emptyText: 'No expenses yet' }} />
+          pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('expense.title')}` }}
+          scroll={{ x: 600 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
       <Modal
-        title={edit ? 'Edit Expense' : 'Add Expense'}
+        title={edit ? t('expense.editTitle') : t('expense.addTitle')}
         open={showForm}
         onCancel={() => setShowForm(false)}
         onOk={handleSave}
-        okText={edit ? 'Update' : 'Save'}
+        okText={edit ? t('common.update') : t('common.save')}
         width={500}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="title" label="Expense Title" rules={[{ required: true }]}>
-            <Input placeholder="Expense title" />
+          <Form.Item name="title" label={t('expense.expenseTitle')} rules={[{ required: true }]}>
+            <Input placeholder={t('expense.expenseTitle')} />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="category" label="Category">
+              <Form.Item name="category" label={t('expense.category')}>
                 <Select>
                   {categories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
                 </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+              <Form.Item name="date" label={t('expense.date')} rules={[{ required: true }]}>
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="amount" label="Amount (₹)" rules={[{ required: true }]}>
-            <InputNumber min={0} step={0.01} prefix="₹" style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="note" label="Note">
-            <Input.TextArea rows={2} placeholder="Optional note" />
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="vendorName" label={t('expense.vendorName')}>
+                <Input placeholder={t('expense.vendorName')} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="billNumber" label={t('expense.billNumber')}>
+                <Input placeholder={t('placeholder.billNo')} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="amount" label={`${t('expense.amount')} (₹)`} rules={[{ required: true }]}>
+                <InputNumber min={0} step={0.01} prefix="₹" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="gstAmount" label={`${t('expense.gstAmount')} (₹)`}>
+                <InputNumber min={0} step={0.01} prefix="₹" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="paymentMethod" label={t('expense.paymentMethod')}>
+                <Select allowClear>
+                  <Select.Option value="Cash">{t('paymentMethods.cash')}</Select.Option>
+                  <Select.Option value="UPI">{t('paymentMethods.upi')}</Select.Option>
+                  <Select.Option value="Bank Transfer">{t('paymentMethods.bankTransfer')}</Select.Option>
+                  <Select.Option value="Card">{t('paymentMethods.card')}</Select.Option>
+                  <Select.Option value="Cheque">{t('paymentMethods.cheque')}</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="isRecurring" label={`${t('expense.recurring')}?`} valuePropName="checked">
+                <Select>
+                  <Select.Option value={false}>{t('expense.oneTime')}</Select.Option>
+                  <Select.Option value={true}>{t('expense.recurring')}</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="note" label={t('expense.note')}>
+            <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Manage Categories"
+        title={t('expense.manageCategories')}
         open={showCatManager}
         onCancel={() => setShowCatManager(false)}
         footer={null}
@@ -240,7 +298,7 @@ export default function Expenses() {
               <Col><Text>{cat}</Text></Col>
               <Col>
                 {!defaultCategories.includes(cat) && (
-                  <Popconfirm title={`Remove "${cat}"?`} onConfirm={() => removeCategory(cat)}>
+                  <Popconfirm title={t('msg.confirmDelete')} onConfirm={() => removeCategory(cat)}>
                     <Button size="small" danger icon={<DeleteOutlined />} />
                   </Popconfirm>
                 )}
@@ -250,7 +308,7 @@ export default function Expenses() {
         </div>
         <Space.Compact style={{ width: '100%' }}>
           <Input value={newCategory} onChange={e => setNewCategory(e.target.value)}
-            placeholder="New category name" onPressEnter={addCategory} />
+            placeholder={t('expense.newCategory')} onPressEnter={addCategory} />
           <Button type="primary" icon={<PlusOutlined />} onClick={addCategory} />
         </Space.Compact>
       </Modal>

@@ -89,6 +89,11 @@ const defaultSettings = {
   businessPhone: '+91 9876543210',
   businessEmail: 'business@example.com',
   businessGstin: '29ABCDE1234F1Z5',
+  businessPan: '',
+  businessCin: '',
+  businessFssai: '',
+  businessMsme: '',
+  businessType: 'Proprietorship',
   businessLogo: '',
   businessBankName: '',
   businessBankAccount: '',
@@ -97,7 +102,11 @@ const defaultSettings = {
   currency: 'INR',
   taxLabel: 'GST',
   defaultTaxRate: 18,
-  termsConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. on delayed payments.',
+  defaultPaymentTerms: 'due_on_receipt',
+  termsConditions: '1. Goods once sold will not be taken back.\n2. Interest @ 18% p.a. on delayed payments.\n3. Payment due within 15 days.',
+  reminderEnabled: false,
+  reminderDaysBefore: 3,
+  reminderNote: 'Dear {{customer}},\n\nThis is a friendly reminder that invoice {{invoiceNo}} of ₹{{amount}} is due on {{dueDate}}.\n\nPlease arrange payment at your earliest convenience.\n\nThank you,\n{{businessName}}',
   theme: 'dark',
   invoiceTemplate: 'modern',
   invoicePrefix: 'INV',
@@ -105,6 +114,7 @@ const defaultSettings = {
   invoiceNextNumber: 1,
   invoiceZeroPad: 5,
   expenseCategories: JSON.stringify(['Office Supplies', 'Utilities', 'Travel', 'Food', 'Rent', 'Maintenance', 'Salary', 'Marketing', 'Software', 'Other']),
+  productCategories: JSON.stringify(['Electronics', 'Clothing', 'Food & Beverages', 'Furniture', 'Stationery', 'Software', 'Services', 'Raw Material', 'Packaging', 'Other']),
 };
 
 export async function getSettings() {
@@ -274,6 +284,8 @@ export async function createCreditNote(data) {
     taxAmount: Number(data.taxAmount) || 0,
     total: Number(data.total) || 0,
     reason: data.reason || '',
+    reasonType: data.reasonType || 'other',
+    additionalCharges: Number(data.additionalCharges) || 0,
     status: 'issued',
     createdAt: new Date().toISOString(),
   };
@@ -423,7 +435,7 @@ export async function convertQuotationToInvoice(quotationId) {
 
 // ---- Purchase / Stock Management ----
 
-export async function recordPurchase({ productId, productName, quantity, unit, costPerUnit, totalCost, supplier, vendorId, date, note }) {
+export async function recordPurchase({ productId, productName, quantity, unit, costPerUnit, totalCost, gstAmount, discount, additionalCharges, invoiceRef, paymentStatus, paymentMethod, dueDate, supplier, vendorId, date, note }) {
   const purchase = {
     productId: Number(productId),
     productName: productName || '',
@@ -431,6 +443,13 @@ export async function recordPurchase({ productId, productName, quantity, unit, c
     unit: unit || 'pcs',
     costPerUnit: Number(costPerUnit) || 0,
     totalCost: Number(totalCost) || 0,
+    gstAmount: Number(gstAmount) || 0,
+    discount: Number(discount) || 0,
+    additionalCharges: Number(additionalCharges) || 0,
+    invoiceRef: invoiceRef || '',
+    paymentStatus: paymentStatus || 'unpaid',
+    paymentMethod: paymentMethod || '',
+    dueDate: dueDate || '',
     supplier: supplier || '',
     vendorId: vendorId ? Number(vendorId) : null,
     date: date || new Date().toISOString().split('T')[0],

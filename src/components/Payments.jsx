@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   Table, Card, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Typography,
   Row, Col, Statistic, message, Tag, Space, Popconfirm
@@ -10,6 +11,7 @@ import db, { recordPayment, deletePayment, logActivity } from '../db';
 const { Title, Text } = Typography;
 
 export default function Payments() {
+  const { t } = useLanguage();
   const [payments, setPayments] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -46,14 +48,14 @@ export default function Payments() {
       reference: values.reference || '',
       note: values.note || '',
     });
-    message.success('Payment recorded');
+    message.success(t('msg.saved'));
     setShowForm(false);
     load();
   }
 
   async function handleDelete(id, invoiceId) {
     await deletePayment(id, invoiceId);
-    message.success('Payment deleted');
+    message.success(t('msg.deleted'));
     load();
   }
 
@@ -68,10 +70,10 @@ export default function Payments() {
   const totalPayments = filtered.reduce((s, p) => s + Number(p.amount), 0);
 
   function downloadPaymentsCsv() {
-    const headers = ['Date', 'Invoice', 'Customer', 'Amount', 'Method', 'Reference', 'Note'];
+    const headers = [t('payment.date'), t('payment.invoice'), t('common.customer'), t('payment.amount'), t('payment.method'), t('payment.reference'), t('payment.note')];
     const rows = filtered.map(p => {
       const inv = invMap[p.invoiceId];
-      return [p.date, inv?.invoiceNo || `#${p.invoiceId}`, inv?.customerName || '-', Number(p.amount).toFixed(2), p.method || 'Cash', p.reference || '', p.note || ''];
+      return [p.date, inv?.invoiceNo || `#${p.invoiceId}`, inv?.customerName || '-', Number(p.amount).toFixed(2), p.method || t('paymentMethods.cash'), p.reference || '', p.note || ''];
     });
     const csv = [headers.join(','), ...rows.map(r => r.map(v => {
       const s = String(v ?? '');
@@ -92,40 +94,40 @@ export default function Payments() {
 
   const columns = [
     {
-      title: 'Date', dataIndex: 'date', key: 'date', width: 110,
+      title: t('payment.date'), dataIndex: 'date', key: 'date', width: 110,
       sorter: (a, b) => a.date?.localeCompare(b.date),
     },
     {
-      title: 'Invoice', dataIndex: 'invoiceId', key: 'invoiceId',
+      title: t('payment.invoice'), dataIndex: 'invoiceId', key: 'invoiceId',
       render: (id) => {
         const inv = invMap[id];
         return inv ? <Text strong style={{ color: '#6366f1' }}>{inv.invoiceNo}</Text> : `#${id}`;
       },
     },
     {
-      title: 'Customer', key: 'customer',
+      title: t('common.customer'), key: 'customer',
       render: (_, r) => {
         const inv = invMap[r.invoiceId];
         return inv?.customerName || '-';
       },
     },
     {
-      title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right',
+      title: t('payment.amount'), dataIndex: 'amount', key: 'amount', align: 'right',
       render: (v) => <Text strong style={{ color: '#52c41a' }}>₹{Number(v).toFixed(2)}</Text>,
       sorter: (a, b) => Number(a.amount) - Number(b.amount),
     },
     {
-      title: 'Method', dataIndex: 'method', key: 'method',
-      render: (t) => <Tag>{t || 'Cash'}</Tag>,
+      title: t('payment.method'), dataIndex: 'method', key: 'method',
+      render: (t) => <Tag>{t || t('paymentMethods.cash')}</Tag>,
     },
     {
-      title: 'Reference', dataIndex: 'reference', key: 'reference',
+      title: t('payment.reference'), dataIndex: 'reference', key: 'reference',
       render: (t) => t || '-',
     },
     {
       title: '', key: 'actions', width: 60, align: 'right',
       render: (_, r) => (
-        <Popconfirm title="Delete this payment?" onConfirm={() => handleDelete(r.id, r.invoiceId)}>
+        <Popconfirm title={t('msg.confirmDelete')} onConfirm={() => handleDelete(r.id, r.invoiceId)}>
           <Button size="small" danger icon={<DeleteOutlined />} />
         </Popconfirm>
       ),
@@ -136,14 +138,14 @@ export default function Payments() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={3} style={{ margin: 0 }}>Payments</Title>
+          <Title level={3} style={{ margin: 0 }}>{t('payment.title')}</Title>
           <Text type="secondary">Track all payments received</Text>
         </Col>
         <Col>
           <Space>
-            <Button icon={<DownloadOutlined />} onClick={downloadPaymentsCsv}>Download CSV</Button>
+            <Button icon={<DownloadOutlined />} onClick={downloadPaymentsCsv}>{t('payment.downloadCsv')}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Record Payment
+              {t('payment.recordPayment')}
             </Button>
           </Space>
         </Col>
@@ -152,13 +154,13 @@ export default function Payments() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
-            <Statistic title="Total Collected" value={totalPayments} precision={2} prefix="₹"
+            <Statistic title={t('payment.totalCollected')} value={totalPayments} precision={2} prefix="₹"
               valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
-            <Statistic title="Transactions" value={filtered.length} valueStyle={{ color: '#6366f1' }} />
+            <Statistic title={t('payment.transactions')} value={filtered.length} valueStyle={{ color: '#6366f1' }} />
           </Card>
         </Col>
       </Row>
@@ -167,68 +169,68 @@ export default function Payments() {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={8}>
-              <Input prefix={<SearchOutlined />} placeholder="Search by invoice..."
+              <Input prefix={<SearchOutlined />} placeholder={t('payment.search')}
                 value={search} onChange={e => setSearch(e.target.value)} allowClear />
             </Col>
           </Row>
         </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
-          pagination={{ pageSize: 15, showTotal: (t) => `${t} payments` }}
-          scroll={{ x: 700 }} locale={{ emptyText: 'No payments recorded yet' }} />
+          pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('payment.title')}` }}
+          scroll={{ x: 700 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
       <Modal
-        title="Record Payment"
+        title={t('payment.recordPayment')}
         open={showForm}
         onCancel={() => setShowForm(false)}
         onOk={handleSave}
-        okText="Record"
+        okText={t('payment.recordPayment')}
         width={500}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="invoiceId" label="Invoice" rules={[{ required: true, message: 'Select invoice' }]}>
-            <Select showSearch placeholder="Search invoice..."
+          <Form.Item name="invoiceId" label={t('payment.invoice')} rules={[{ required: true, message: t('placeholder.selectInvoice') }]}>
+            <Select showSearch placeholder={t('placeholder.selectInvoice')}
               filterOption={(input, option) => option.children?.toLowerCase().includes(input.toLowerCase())}>
               {invoices.map(inv => (
                 <Select.Option key={inv.id} value={inv.id}>
-                  {inv.invoiceNo} - {inv.customerName || 'Walk-in'} (₹{Number(inv.grandTotal).toFixed(2)})
+                  {inv.invoiceNo} - {inv.customerName || t('msg.walkIn')} (₹{Number(inv.grandTotal).toFixed(2)})
                 </Select.Option>
               ))}
             </Select>
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="amount" label="Amount (₹)" rules={[{ required: true }]}>
+              <Form.Item name="amount" label={`${t('payment.amount')} (₹)`} rules={[{ required: true }]}>
                 <InputNumber min={1} step={0.01} prefix="₹" style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="method" label="Payment Method">
+              <Form.Item name="method" label={t('payment.method')}>
                 <Select>
-                  <Select.Option value="Cash">Cash</Select.Option>
-                  <Select.Option value="UPI">UPI</Select.Option>
-                  <Select.Option value="Bank Transfer">Bank Transfer</Select.Option>
-                  <Select.Option value="Card">Card</Select.Option>
-                  <Select.Option value="Cheque">Cheque</Select.Option>
+                  <Select.Option value="Cash">{t('paymentMethods.cash')}</Select.Option>
+                  <Select.Option value="UPI">{t('paymentMethods.upi')}</Select.Option>
+                  <Select.Option value="Bank Transfer">{t('paymentMethods.bankTransfer')}</Select.Option>
+                  <Select.Option value="Card">{t('paymentMethods.card')}</Select.Option>
+                  <Select.Option value="Cheque">{t('paymentMethods.cheque')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+              <Form.Item name="date" label={t('payment.date')} rules={[{ required: true }]}>
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="reference" label="Reference (optional)">
-                <Input placeholder="Cheque/UTR no." />
+              <Form.Item name="reference" label={`${t('payment.reference')} (${t('common.optional')})`}>
+                <Input placeholder={t('placeholder.reference')} />
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="note" label="Note">
-            <Input.TextArea rows={2} placeholder="Optional note" />
+          <Form.Item name="note" label={t('payment.note')}>
+            <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
           </Form.Item>
         </Form>
       </Modal>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FileTextOutlined } from '@ant-design/icons';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const styles = {
   container: {
@@ -150,6 +151,7 @@ function Particle({ index }) {
 
 export default function SplashScreen({ onFinish }) {
   const [fadeOut, setFadeOut] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -217,8 +219,8 @@ export default function SplashScreen({ onFinish }) {
         <div style={styles.ring2} />
         <FileTextOutlined style={{ fontSize: 38, color: 'white', position: 'relative', zIndex: 3 }} />
       </div>
-      <div style={styles.title}>BillingPro</div>
-      <div style={styles.subtitle}>GST Invoice Manager</div>
+      <div style={styles.title}>{t('header.billingPro')}</div>
+      <div style={styles.subtitle}>{t('header.subtitle')}</div>
       <div style={styles.dots}>
         <div style={{ ...styles.dot, ...styles.dot2 }} />
         <div style={{ ...styles.dot, ...styles.dot2 }} />
@@ -227,7 +229,7 @@ export default function SplashScreen({ onFinish }) {
       <div style={styles.progressTrack}>
         <div style={styles.progressBar} />
       </div>
-      <div style={styles.version}>v1.0.0</div>
+      <div style={styles.version}>{t('header.version')}</div>
     </div>
   );
 }

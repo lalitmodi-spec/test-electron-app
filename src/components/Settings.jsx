@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Upload, Image, Divider, InputNumber } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber } from 'antd';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
 
 export default function Settings() {
+  const { t } = useLanguage();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -41,7 +43,7 @@ export default function Settings() {
           setLogoPreview(base64);
           form.setFieldsValue({ businessLogo: base64 });
           await updateSetting('businessLogo', base64);
-          message.success('Logo saved to local storage');
+          message.success(t('msg.saved'));
         }
       } else {
         setLogoPreview(base64);
@@ -68,10 +70,10 @@ export default function Settings() {
         await updateSetting(key, value);
       }
       document.documentElement.classList.toggle('dark', values.theme === 'dark');
-      await logActivity('settings', 'Updated business settings');
-      message.success('Settings saved');
+      await logActivity('settings', t('activity.settings'));
+      message.success(t('msg.saved'));
     } catch {
-      message.error('Error saving settings');
+      message.error(t('msg.errorSaving'));
     }
     setSaving(false);
   }
@@ -89,15 +91,15 @@ export default function Settings() {
         settings: await db.settings.toArray(),
       };
       await window.electronAPI.saveExport({ filePath: result.filePath, data });
-      await logActivity('export', 'Exported all data');
-      message.success('Data exported successfully!');
+      await logActivity('export', t('activity.export'));
+      message.success(t('msg.dataExported'));
     } else {
-      message.info('Export available in Electron app');
+      message.info(t('common.export'));
     }
   }
 
   async function handleImport() {
-    if (!window.electronAPI) return message.info('Import available in Electron app');
+    if (!window.electronAPI) return message.info(t('common.import'));
     setImporting(true);
     try {
       const result = await window.electronAPI.importData();
@@ -109,8 +111,8 @@ export default function Settings() {
       if (data.expenses) await db.expenses.bulkAdd(data.expenses);
       if (data.payments && db.payments) await db.payments.bulkAdd(data.payments);
       if (data.settings) await db.settings.bulkAdd(data.settings);
-      await logActivity('import', 'Imported data from backup');
-      message.success('Data imported! Reload to see changes.');
+      await logActivity('import', t('activity.import'));
+      message.success(t('msg.dataImported'));
     } finally {
       setImporting(false);
     }
@@ -123,17 +125,42 @@ export default function Settings() {
     await db.expenses.clear();
     await db.activity.clear();
     if (db.payments) await db.payments.clear();
-    message.success('All data cleared');
+    message.success(t('msg.dataCleared'));
   }
+
+  const businessTypeOptions = [
+    { value: 'Proprietorship', translation: t('businessTypes.proprietorship') },
+    { value: 'Partnership', translation: t('businessTypes.partnership') },
+    { value: 'Private Limited', translation: t('businessTypes.privateLimited') },
+    { value: 'LLP', translation: t('businessTypes.llp') },
+    { value: 'Public Limited', translation: t('businessTypes.publicLimited') },
+    { value: 'HUF', translation: t('businessTypes.huf') },
+    { value: 'Other', translation: t('businessTypes.other') },
+  ];
+
+  const paymentTermOptions = [
+    { value: 'due_on_receipt', translation: t('settingsPaymentTerms.dueOnReceipt') },
+    { value: 'net_7', translation: t('settingsPaymentTerms.net7') },
+    { value: 'net_15', translation: t('settingsPaymentTerms.net15') },
+    { value: 'net_30', translation: t('settingsPaymentTerms.net30') },
+    { value: 'net_45', translation: t('settingsPaymentTerms.net45') },
+    { value: 'net_60', translation: t('settingsPaymentTerms.net60') },
+  ];
+
+  const templateCards = [
+    { key: 'professional', desc: 'Indigo header, clean layout', color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
+    { key: 'classic', desc: 'Blue header, bordered sections', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
+    { key: 'minimal', desc: 'Dark sleek, compact', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' },
+  ];
 
   const tabItems = [
     {
       key: 'business',
-      label: 'Business Info',
+      label: t('settings.businessInfo'),
       children: (
         <Row gutter={16}>
           <Col span={24}>
-            <Form.Item label="Business Logo">
+            <Form.Item label={t('settings.businessLogo')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 {logoPreview && (
                   <div style={{ position: 'relative' }}>
@@ -147,47 +174,77 @@ export default function Settings() {
                   onChange={(e) => e.target.files[0] && handleLogoUpload(e.target.files[0])}
                   style={{ display: 'none' }} />
                 <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()}>
-                  {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                  {t('common.upload')}
                 </Button>
-                <Text type="secondary" style={{ fontSize: 12 }}>PNG or JPG, will appear on PDF invoices</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>{t('settings.logoHelp')}</Text>
               </div>
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item name="businessName" label="Business Name" rules={[{ required: true }]}>
-              <Input placeholder="Your business name" />
+            <Form.Item name="businessName" label={t('settings.businessName')} rules={[{ required: true }]}>
+              <Input placeholder={t('settings.businessName')} />
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item name="businessAddress" label="Address">
-              <Input.TextArea rows={2} placeholder="Full address" />
+            <Form.Item name="businessAddress" label={t('settings.address')}>
+              <Input.TextArea rows={2} placeholder={t('settings.address')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessPhone" label="Phone">
-              <Input placeholder="Phone number" />
+            <Form.Item name="businessPhone" label={t('settings.phone')}>
+              <Input placeholder={t('placeholder.phone')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessEmail" label="Email">
-              <Input placeholder="Email address" />
+            <Form.Item name="businessEmail" label={t('settings.email')}>
+              <Input placeholder={t('placeholder.email')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessGstin" label="GSTIN">
-              <Input placeholder="GSTIN" />
+            <Form.Item name="businessGstin" label={t('settings.gstin')}>
+              <Input placeholder={t('settings.gstin')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="defaultTaxRate" label="Default Tax Rate">
+            <Form.Item name="defaultTaxRate" label={t('settings.defaultTaxRate')}>
               <Select>
-                {[0, 5, 12, 18, 28].map(t => <Select.Option key={t} value={t}>{t}%</Select.Option>)}
+                {[0, 5, 12, 18, 28].map(rate => <Select.Option key={rate} value={rate}>{rate}%</Select.Option>)}
               </Select>
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessUpiId" label="UPI ID (for QR on invoice)">
-              <Input placeholder="example@upi" />
+            <Form.Item name="businessUpiId" label={t('settings.upiId')}>
+              <Input placeholder={t('settings.upiId')} />
+            </Form.Item>
+          </Col>
+          <Col span={24}><Divider style={{ margin: '4px 0' }} /><Text strong>{t('settings.additionalInfo')}</Text></Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="businessPan" label={t('settings.pan')}>
+              <Input placeholder={t('settings.pan')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="businessCin" label={t('settings.cin')}>
+              <Input placeholder={t('settings.cin')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="businessFssai" label={t('settings.fssai')}>
+              <Input placeholder={t('settings.fssai')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="businessMsme" label={t('settings.msme')}>
+              <Input placeholder={t('settings.msme')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="businessType" label={t('settings.businessType')}>
+              <Select>
+                {businessTypeOptions.map(o => (
+                  <Select.Option key={o.value} value={o.value}>{o.translation}</Select.Option>
+                ))}
+              </Select>
             </Form.Item>
           </Col>
         </Row>
@@ -195,27 +252,27 @@ export default function Settings() {
     },
     {
       key: 'bank',
-      label: 'Bank Details',
+      label: t('settings.bankDetails'),
       children: (
         <Row gutter={16}>
           <Col span={24}>
             <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>
-              Bank details will appear on PDF invoices for payment reference.
+              {t('settings.bankDetails')}
             </Text>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessBankName" label="Bank Name">
-              <Input placeholder="e.g. State Bank of India" />
+            <Form.Item name="businessBankName" label={t('settings.bankName')}>
+              <Input placeholder={t('settings.bankName')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessBankAccount" label="Account Number">
-              <Input placeholder="Account number" />
+            <Form.Item name="businessBankAccount" label={t('settings.bankAccount')}>
+              <Input placeholder={t('settings.bankAccount')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="businessBankIfsc" label="IFSC Code">
-              <Input placeholder="IFSC code" />
+            <Form.Item name="businessBankIfsc" label={t('settings.bankIfsc')}>
+              <Input placeholder={t('settings.bankIfsc')} />
             </Form.Item>
           </Col>
         </Row>
@@ -223,16 +280,16 @@ export default function Settings() {
     },
     {
       key: 'invoice',
-      label: 'Invoice Defaults',
+      label: t('settings.invoiceDefaults'),
       children: (
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item name="taxLabel" label="Tax Label">
-              <Input placeholder="GST / VAT / Sales Tax" />
+            <Form.Item name="taxLabel" label={t('settings.taxLabel')}>
+              <Input placeholder={t('settings.taxLabel')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="currency" label="Currency">
+            <Form.Item name="currency" label={t('settings.currency')}>
               <Select>
                 <Select.Option value="INR">INR (₹)</Select.Option>
                 <Select.Option value="USD">USD ($)</Select.Option>
@@ -242,43 +299,43 @@ export default function Settings() {
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="invoiceTemplate" label="Default PDF Template">
+            <Form.Item name="invoiceTemplate" label={t('settings.defaultTemplate')}>
               <Select>
-                <Select.Option value="professional">Professional (Indigo)</Select.Option>
-                <Select.Option value="classic">Classic (Blue)</Select.Option>
-                <Select.Option value="minimal">Minimal (Clean)</Select.Option>
+                <Select.Option value="professional">{t('pdfTemplates.professional')} (Indigo)</Select.Option>
+                <Select.Option value="classic">{t('pdfTemplates.classic')} (Blue)</Select.Option>
+                <Select.Option value="minimal">{t('pdfTemplates.minimal')} (Clean)</Select.Option>
               </Select>
             </Form.Item>
           </Col>
           <Col span={24}>
             <Divider style={{ margin: '8px 0' }} />
-            <Text strong style={{ display: 'block', marginBottom: 12 }}>Invoice Numbering</Text>
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.invoiceNumbering')}</Text>
           </Col>
           <Col xs={24} sm={6}>
-            <Form.Item name="invoicePrefix" label="Prefix">
-              <Input placeholder="INV" />
+            <Form.Item name="invoicePrefix" label={t('settings.prefix')}>
+              <Input placeholder={t('settings.prefix')} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={6}>
-            <Form.Item name="invoiceSeparator" label="Separator">
+            <Form.Item name="invoiceSeparator" label={t('settings.separator')}>
               <Input placeholder="-" maxLength={2} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={6}>
-            <Form.Item name="invoiceZeroPad" label="Zero Padding">
+            <Form.Item name="invoiceZeroPad" label={t('settings.zeroPadding')}>
               <Select>
-                {[3, 4, 5, 6].map(n => <Select.Option key={n} value={n}>{n} digits (e.g. 00{Array(n-2).fill(0).join('')}1)</Select.Option>)}
+                {[3, 4, 5, 6].map(n => <Select.Option key={n} value={n}>{`${n} ${t('settings.zeroPadding')}`}</Select.Option>)}
               </Select>
             </Form.Item>
           </Col>
           <Col xs={24} sm={6}>
-            <Form.Item name="invoiceNextNumber" label="Next Number">
+            <Form.Item name="invoiceNextNumber" label={t('settings.nextNumber')}>
               <InputNumber min={1} style={{ width: '100%' }} />
             </Form.Item>
           </Col>  
           <Col span={24}>
-            <Form.Item name="termsConditions" label="Terms & Conditions (for PDF)">
-              <Input.TextArea rows={3} placeholder="Terms and conditions..." />
+            <Form.Item name="termsConditions" label={t('settings.termsConditions')}>
+              <Input.TextArea rows={3} placeholder={t('settings.termsConditions')} />
             </Form.Item>
           </Col>
 
@@ -289,28 +346,24 @@ export default function Settings() {
             }}>
               <Space style={{ marginBottom: 16 }}>
                 <FilePdfOutlined style={{ color: '#6366f1', fontSize: 18 }} />
-                <Text strong style={{ fontSize: 15 }}>Template Preview Gallery</Text>
+                <Text strong style={{ fontSize: 15 }}>{t('settings.templatePreview')}</Text>
               </Space>
               <Row gutter={12}>
-                {[
-                  { key: 'professional', label: 'Professional', desc: 'Indigo header, clean layout', color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
-                  { key: 'classic', label: 'Classic', desc: 'Blue header, bordered sections', color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
-                  { key: 'minimal', label: 'Minimal', desc: 'Dark sleek, compact', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' },
-                ].map(t => (
-                  <Col xs={24} sm={8} key={t.key}>
+                {templateCards.map(card => (
+                  <Col xs={24} sm={8} key={card.key}>
                     <div style={{
-                      background: t.bg, borderRadius: 10, padding: 16, textAlign: 'center',
-                      border: `1px solid ${t.color}33`, cursor: 'pointer',
+                      background: card.bg, borderRadius: 10, padding: 16, textAlign: 'center',
+                      border: `1px solid ${card.color}33`, cursor: 'pointer',
                       transition: 'all 0.2s',
                     }}
                       onClick={() => {
-                        setTemplatePreviewSelected(t.key);
+                        setTemplatePreviewSelected(card.key);
                         setTemplatePreviewOpen(true);
                       }}>
-                      <FilePdfOutlined style={{ fontSize: 32, color: t.color, marginBottom: 8 }} />
-                      <div style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>{t.label}</div>
-                      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>{t.desc}</div>
-                      <Button size="small" icon={<EyeOutlined />}>Preview</Button>
+                      <FilePdfOutlined style={{ fontSize: 32, color: card.color, marginBottom: 8 }} />
+                      <div style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>{t(`pdfTemplates.${card.key}`)}</div>
+                      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>{card.desc}</div>
+                      <Button size="small" icon={<EyeOutlined />}>{t('common.preview')}</Button>
                     </div>
                   </Col>
                 ))}
@@ -321,15 +374,58 @@ export default function Settings() {
       ),
     },
     {
+      key: 'reminders',
+      label: <Space><BellOutlined />{t('settings.reminders')}</Space>,
+      children: (
+        <Row gutter={16}>
+          <Col span={24}>
+            <Alert message={t('settings.reminders')}
+              description={t('settings.reminders')}
+              type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }} />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="reminderEnabled" label={t('settings.enableReminders')}>
+              <Select>
+                <Select.Option value={true}>{t('common.yes')}</Select.Option>
+                <Select.Option value={false}>{t('common.no')}</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="reminderDaysBefore" label={t('settings.remindBeforeDue')}>
+              <InputNumber min={0} max={60} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Form.Item name="reminderNote" label={t('settings.reminderTemplate')}>
+              <Input.TextArea rows={5} placeholder={t('settings.reminderTemplate')} />
+            </Form.Item>
+            <Text type="secondary">
+              {t('settings.reminders')}: {'{{customer}}'}, {'{{invoiceNo}}'}, {'{{amount}}'}, {'{{dueDate}}'}, {'{{businessName}}'}
+            </Text>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="defaultPaymentTerms" label={t('settings.defaultPaymentTerms')}>
+              <Select>
+                {paymentTermOptions.map(o => (
+                  <Select.Option key={o.value} value={o.value}>{o.translation}</Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+      ),
+    },
+    {
       key: 'appearance',
-      label: 'Appearance',
+      label: t('settings.appearance'),
       children: (
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item name="theme" label="Theme">
+            <Form.Item name="theme" label={t('settings.theme')}>
               <Select>
-                <Select.Option value="dark">Dark Mode</Select.Option>
-                <Select.Option value="light">Light Mode</Select.Option>
+                <Select.Option value="dark">{t('settings.darkMode')}</Select.Option>
+                <Select.Option value="light">{t('settings.lightMode')}</Select.Option>
               </Select>
             </Form.Item>
           </Col>
@@ -338,17 +434,17 @@ export default function Settings() {
     },
     {
       key: 'data',
-      label: 'Data Management',
+      label: t('settings.dataManagement'),
       children: (
         <div>
-          <Alert message="Data Management"
-            description="Export your data as JSON backup, or import previously exported data. Clearing data is irreversible."
+          <Alert message={t('settings.dataManagement')}
+            description={t('settings.dataManagementDesc')}
             type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }} />
           <Space wrap>
-            <Button icon={<DownloadOutlined />} onClick={handleExport}>Export Data</Button>
-            <Button icon={<UploadOutlined />} onClick={handleImport} disabled={importing}>Import Data</Button>
-            <Popconfirm title="Delete ALL data?" description="This cannot be undone!" onConfirm={handleClearData}>
-              <Button danger icon={<DeleteOutlined />}>Clear All Data</Button>
+            <Button icon={<DownloadOutlined />} onClick={handleExport}>{t('settings.exportData')}</Button>
+            <Button icon={<UploadOutlined />} onClick={handleImport} disabled={importing}>{t('settings.importData')}</Button>
+            <Popconfirm title={t('msg.confirmDeleteTitle')} description={t('msg.noUndo')} onConfirm={handleClearData}>
+              <Button danger icon={<DeleteOutlined />}>{t('settings.clearData')}</Button>
             </Popconfirm>
           </Space>
         </div>
@@ -360,11 +456,11 @@ export default function Settings() {
     <div style={{ maxWidth: 800 }}>
       <Row align="middle" style={{ marginBottom: 16 }}>
         <Col flex="auto">
-          <Title level={3} style={{ margin: 0 }}>Settings</Title>
-          <Text type="secondary">Manage your business profile</Text>
+          <Title level={3} style={{ margin: 0 }}>{t('settings.title')}</Title>
+          <Text type="secondary">{t('settings.businessInfo')}</Text>
         </Col>
         <Col>
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving}>Save Settings</Button>
+          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving}>{t('settings.save')}</Button>
         </Col>
       </Row>
 

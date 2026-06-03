@@ -11,12 +11,54 @@ import {
 import dayjs from 'dayjs';
 import db, { getSettings, logActivity, addQuotation, updateQuotation, convertQuotationToInvoice, getNextQuotationNo } from '../db';
 import { generateQuotationPDF } from '../utils/pdfExport';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
+
+const stateOptions = [
+  { value: 'Andhra Pradesh', key: 'andhraPradesh' },
+  { value: 'Arunachal Pradesh', key: 'arunachalPradesh' },
+  { value: 'Assam', key: 'assam' },
+  { value: 'Bihar', key: 'bihar' },
+  { value: 'Chhattisgarh', key: 'chhattisgarh' },
+  { value: 'Goa', key: 'goa' },
+  { value: 'Gujarat', key: 'gujarat' },
+  { value: 'Haryana', key: 'haryana' },
+  { value: 'Himachal Pradesh', key: 'himachalPradesh' },
+  { value: 'Jharkhand', key: 'jharkhand' },
+  { value: 'Karnataka', key: 'karnataka' },
+  { value: 'Kerala', key: 'kerala' },
+  { value: 'Madhya Pradesh', key: 'madhyaPradesh' },
+  { value: 'Maharashtra', key: 'maharashtra' },
+  { value: 'Manipur', key: 'manipur' },
+  { value: 'Meghalaya', key: 'meghalaya' },
+  { value: 'Mizoram', key: 'mizoram' },
+  { value: 'Nagaland', key: 'nagaland' },
+  { value: 'Odisha', key: 'odisha' },
+  { value: 'Punjab', key: 'punjab' },
+  { value: 'Rajasthan', key: 'rajasthan' },
+  { value: 'Sikkim', key: 'sikkim' },
+  { value: 'Tamil Nadu', key: 'tamilNadu' },
+  { value: 'Telangana', key: 'telangana' },
+  { value: 'Tripura', key: 'tripura' },
+  { value: 'Uttar Pradesh', key: 'uttarPradesh' },
+  { value: 'Uttarakhand', key: 'uttarakhand' },
+  { value: 'West Bengal', key: 'westBengal' },
+  { value: 'Delhi', key: 'delhi' },
+  { value: 'Puducherry', key: 'puducherry' },
+  { value: 'Chandigarh', key: 'chandigarh' },
+  { value: 'Andaman and Nicobar', key: 'andaman' },
+  { value: 'Dadra and Nagar Haveli', key: 'dadra' },
+  { value: 'Daman and Diu', key: 'daman' },
+  { value: 'Lakshadweep', key: 'lakshadweep' },
+  { value: 'Ladakh', key: 'ladakh' },
+  { value: 'Jammu and Kashmir', key: 'jammuKashmir' },
+];
 
 export default function QuotationForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { t } = useLanguage();
   const isEdit = Boolean(id);
   const [form] = Form.useForm();
   const [customers, setCustomers] = useState([]);
@@ -132,6 +174,8 @@ export default function QuotationForm() {
       customerAddress: cust ? cust.address : '',
       customerShippingAddress: cust ? (cust.shippingAddress || cust.address) : '',
       customerStateCode: cust ? cust.stateCode : '',
+      customerEmail: cust ? cust.email : '',
+      customerPhone: cust ? cust.phone : '',
     });
   };
 
@@ -173,13 +217,13 @@ export default function QuotationForm() {
         await generateQuotationPDF(qData, templateOverride);
       }
 
-      message.success(withPdf ? 'Quotation saved & PDF downloaded!' : 'Quotation saved!');
+      message.success(t('msg.saved'));
       navigate('/quotations');
     } catch (err) {
       if (err.errorFields) {
-        message.error('Please fill in all required fields');
+        message.error(t('msg.requiredFields'));
       } else {
-        message.error('Error saving quotation');
+        message.error(t('msg.errorSaving'));
       }
     } finally {
       setSaving(false);
@@ -216,64 +260,64 @@ export default function QuotationForm() {
       }
 
       const result = await convertQuotationToInvoice(qId);
-      message.success(`Quotation converted to invoice ${result.invoiceNo}!`);
+      message.success(t('msg.invoiceConverted'));
       navigate(`/invoice/edit/${result.invoiceId}`);
     } catch (err) {
       if (err.message?.includes('already converted')) {
         message.warning(err.message);
       } else if (err.errorFields) {
-        message.error('Please fill in all required fields');
+        message.error(t('msg.requiredFields'));
       } else {
-        message.error('Error converting quotation');
+        message.error(t('msg.errorSaving'));
       }
     }
   }
 
   const itemColumns = [
     {
-      title: 'Item', dataIndex: 'name', key: 'name', width: '26%',
+      title: t('invoice.itemName'), dataIndex: 'name', key: 'name', width: '26%',
       render: (_, record) => (
         <Space.Compact style={{ width: '100%' }}>
           {products.length > 0 && (
-            <Select showSearch placeholder="Prod" style={{ width: 85 }}
+            <Select showSearch placeholder={t('placeholder.selectProduct')} style={{ width: 85 }}
               onChange={(val) => selectProduct(record.key, val)}
               filterOption={(input, option) => option.children?.toLowerCase().includes(input.toLowerCase())}>
               {products.map(p => <Select.Option key={p.id} value={p.id}>{p.name}</Select.Option>)}
             </Select>
           )}
           <Input value={record.name} onChange={e => updateItem(record.key, 'name', e.target.value)}
-            placeholder="Item name" style={{ flex: 1 }} />
+            placeholder={t('placeholder.itemName')} style={{ flex: 1 }} />
         </Space.Compact>
       )
     },
     {
-      title: 'HSN', dataIndex: 'hsn', key: 'hsn', width: 80,
-      render: (_, record) => <Input value={record.hsn} onChange={e => updateItem(record.key, 'hsn', e.target.value)} placeholder="HSN" />
+      title: t('invoice.hsn'), dataIndex: 'hsn', key: 'hsn', width: 80,
+      render: (_, record) => <Input value={record.hsn} onChange={e => updateItem(record.key, 'hsn', e.target.value)} placeholder={t('placeholder.hsn')} />
     },
     {
-      title: 'Qty', dataIndex: 'qty', key: 'qty', width: 70,
+      title: t('invoice.qty'), dataIndex: 'qty', key: 'qty', width: 70,
       render: (_, record) => <InputNumber min={1} value={record.qty} onChange={v => updateItem(record.key, 'qty', v)} style={{ width: '100%' }} />
     },
     {
-      title: 'Rate', dataIndex: 'rate', key: 'rate', width: 100,
+      title: t('invoice.rate'), dataIndex: 'rate', key: 'rate', width: 100,
       render: (_, record) => <InputNumber min={0} step={0.01} prefix="₹" value={record.rate} onChange={v => updateItem(record.key, 'rate', v)} style={{ width: '100%' }} />
     },
     {
-      title: 'Tax%', dataIndex: 'taxRate', key: 'taxRate', width: 75,
+      title: t('invoice.taxRate'), dataIndex: 'taxRate', key: 'taxRate', width: 75,
       render: (_, record) => (
         <Select value={record.taxRate} onChange={v => updateItem(record.key, 'taxRate', v)} style={{ width: '100%' }}>
-          {[0, 5, 12, 18, 28].map(t => <Select.Option key={t} value={t}>{t}%</Select.Option>)}
+          {[0, 5, 12, 18, 28].map(rate => <Select.Option key={rate} value={rate}>{rate}%</Select.Option>)}
         </Select>
       )
     },
     {
-      title: 'Amount', dataIndex: 'amount', key: 'amount', width: 100, align: 'right',
+      title: t('invoice.amount'), dataIndex: 'amount', key: 'amount', width: 100, align: 'right',
       render: (v) => <Text strong>₹{Number(v).toFixed(2)}</Text>
     },
     {
       title: '', key: 'action', width: 45,
       render: (_, record) => (
-        <Popconfirm title="Remove item?" onConfirm={() => removeItem(record.key)}>
+        <Popconfirm title={t('msg.confirmDelete')} onConfirm={() => removeItem(record.key)}>
           <Button type="text" danger icon={<DeleteOutlined />} disabled={items.length <= 1} size="small" />
         </Popconfirm>
       )
@@ -284,12 +328,12 @@ export default function QuotationForm() {
     <div>
       <Row align="middle" style={{ marginBottom: 20 }}>
         <Col flex="auto">
-          <Title level={3} style={{ margin: 0 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</Title>
-          <Text type="secondary">Create a price estimate for your customer</Text>
+          <Title level={3} style={{ margin: 0 }}>{isEdit ? t('quotation.editTitle') : t('quotation.newTitle')}</Title>
+          <Text type="secondary">{t('quotation.title')}</Text>
         </Col>
         <Col>
           <Space>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/quotations')}>Back</Button>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/quotations')}>{t('common.back')}</Button>
           </Space>
         </Col>
       </Row>
@@ -297,9 +341,9 @@ export default function QuotationForm() {
       {convertedInfo && (
         <Card size="small" style={{ marginBottom: 16, borderLeft: '3px solid #52c41a' }}>
           <Text style={{ color: '#52c41a' }}>
-            This quotation has been converted to an invoice.{' '}
+            {t('quotation.alreadyConverted')}{' '}
             <Button type="link" size="small" onClick={() => navigate(`/invoice/edit/${convertedInfo.invoiceId}`)}>
-              View Invoice
+              {t('quotation.viewConverted')}
             </Button>
           </Text>
         </Card>
@@ -307,31 +351,31 @@ export default function QuotationForm() {
 
       <Card>
         <Form form={form} layout="vertical" initialValues={{
-          date: dayjs(), status: 'draft', quotationNo: 'Loading...',
+          date: dayjs(), status: 'draft', quotationNo: t('common.loading'),
         }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={6}>
-              <Form.Item label="Quotation No" name="quotationNo" rules={[{ required: true }]}>
+              <Form.Item label={t('quotation.quotationNo')} name="quotationNo" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6} md={4}>
-              <Form.Item label="Date" name="date" rules={[{ required: true }]}>
+              <Form.Item label={t('common.date')} name="date" rules={[{ required: true }]}>
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6} md={4}>
-              <Form.Item label="Valid Until" name="validUntil">
+              <Form.Item label={t('quotation.validUntil')} name="validUntil">
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12} md={4}>
-              <Form.Item label="Status" name="status">
+              <Form.Item label={t('quotation.status')} name="status">
                 <Select>
-                  <Select.Option value="draft">Draft</Select.Option>
-                  <Select.Option value="sent">Sent</Select.Option>
-                  <Select.Option value="accepted">Accepted</Select.Option>
-                  <Select.Option value="rejected">Rejected</Select.Option>
+                  <Select.Option value="draft">{t('quotation.draft')}</Select.Option>
+                  <Select.Option value="sent">{t('quotation.sent')}</Select.Option>
+                  <Select.Option value="accepted">{t('quotation.accepted')}</Select.Option>
+                  <Select.Option value="rejected">{t('quotation.rejected')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -341,8 +385,8 @@ export default function QuotationForm() {
 
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item label="Customer" name="customerId">
-                <Select showSearch placeholder="Select customer" onChange={selectCustomer}
+              <Form.Item label={t('invoice.customer')} name="customerId">
+                <Select showSearch placeholder={t('placeholder.selectCustomer')} onChange={selectCustomer}
                   filterOption={(input, option) => option.children?.toLowerCase().includes(input.toLowerCase())} allowClear>
                   {customers.map(c => (
                     <Select.Option key={c.id} value={c.id}>
@@ -353,49 +397,49 @@ export default function QuotationForm() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item label="Contact Name" name="customerName">
-                <Input placeholder="Customer name" />
+              <Form.Item label={t('invoice.contactName')} name="customerName">
+                <Input placeholder={t('invoice.contactName')} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item label="Company Name" name="customerCompany">
-                <Input placeholder="Company name" />
+              <Form.Item label={t('invoice.companyName')} name="customerCompany">
+                <Input placeholder={t('invoice.companyName')} />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6}>
-              <Form.Item label="GSTIN" name="customerGstin">
-                <Input placeholder="GSTIN" />
+              <Form.Item label={t('settings.gstin')} name="customerGstin">
+                <Input placeholder={t('settings.gstin')} />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6}>
-              <Form.Item label="State" name="customerState">
-                <Select showSearch placeholder="Select state" allowClear>
-                  {['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Puducherry','Chandigarh','Andaman and Nicobar','Dadra and Nagar Haveli','Daman and Diu','Lakshadweep','Ladakh','Jammu and Kashmir'].map(s => (
-                    <Select.Option key={s} value={s}>{s}</Select.Option>
+              <Form.Item label={t('invoice.state')} name="customerState">
+                <Select showSearch placeholder={t('invoice.state')} allowClear>
+                  {stateOptions.map(state => (
+                    <Select.Option key={state.value} value={state.value}>{t(`states.${state.key}`)}</Select.Option>
                   ))}
                 </Select>
               </Form.Item>
             </Col>
             <Col xs={12} sm={6}>
-              <Form.Item label="State Code" name="customerStateCode">
-                <Input placeholder="e.g. 27" />
+              <Form.Item label={t('invoice.stateCode')} name="customerStateCode">
+                <Input placeholder={t('invoice.stateCode')} />
               </Form.Item>
             </Col>
             <Col xs={24}>
-              <Form.Item label="Billing Address" name="customerAddress">
-                <Input.TextArea rows={2} placeholder="Billing address" />
+              <Form.Item label={t('invoice.billingAddress')} name="customerAddress">
+                <Input.TextArea rows={2} placeholder={t('invoice.billingAddress')} />
               </Form.Item>
             </Col>
             <Col xs={24}>
-              <Form.Item label="Shipping Address" name="customerShippingAddress">
-                <Input.TextArea rows={2} placeholder="Shipping address (if different)" />
+              <Form.Item label={t('invoice.shippingAddress')} name="customerShippingAddress">
+                <Input.TextArea rows={2} placeholder={t('invoice.shippingAddress')} />
               </Form.Item>
             </Col>
           </Row>
 
           <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-            <Col><Text strong>Quotation Items</Text></Col>
-            <Col><Button type="dashed" icon={<PlusOutlined />} onClick={addItem}>Add Item</Button></Col>
+            <Col><Text strong>{t('quotation.items')}</Text></Col>
+            <Col><Button type="dashed" icon={<PlusOutlined />} onClick={addItem}>{t('quotation.addItem')}</Button></Col>
           </Row>
 
           <Table dataSource={items} columns={itemColumns} rowKey="key" pagination={false}
@@ -406,17 +450,17 @@ export default function QuotationForm() {
           <Row justify="end">
             <Col xs={24} sm={12} md={8}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Row justify="space-between"><Text type="secondary">Subtotal</Text><Text>₹{totals.subtotal.toFixed(2)}</Text></Row>
-                <Row justify="space-between"><Text type="secondary">CGST</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
-                <Row justify="space-between"><Text type="secondary">SGST</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.subtotal')}</Text><Text>₹{totals.subtotal.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')}</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')}</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
                 <Row justify="space-between" align="middle">
-                  <Text type="secondary">Discount</Text>
+                  <Text type="secondary">{t('invoice.discount')}</Text>
                   <InputNumber prefix="₹" min={0} step={0.01} value={discount}
                     onChange={v => setDiscount(v || 0)} style={{ width: 120 }} />
                 </Row>
                 <Divider style={{ margin: '4px 0' }} />
                 <Row justify="space-between">
-                  <Text strong style={{ fontSize: 16 }}>Grand Total</Text>
+                  <Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text>
                   <Text strong style={{ fontSize: 16, color: '#6366f1' }}>₹{totals.grandTotal.toFixed(2)}</Text>
                 </Row>
               </div>
@@ -427,8 +471,8 @@ export default function QuotationForm() {
 
           <Row gutter={16}>
             <Col xs={24}>
-              <Form.Item label="Notes" name="notes">
-                <Input.TextArea rows={2} placeholder="Terms, conditions, delivery info..." />
+              <Form.Item label={t('common.notes')} name="notes">
+                <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
               </Form.Item>
             </Col>
           </Row>
@@ -436,23 +480,23 @@ export default function QuotationForm() {
 
         <Row justify="end" gutter={12} align="middle">
           <Col>
-            <Button onClick={() => navigate('/quotations')}>Cancel</Button>
+            <Button onClick={() => navigate('/quotations')}>{t('common.cancel')}</Button>
           </Col>
           <Col>
             <Button icon={<SwapOutlined />} onClick={handleConvertToInvoice}
               disabled={convertedInfo}>
-              Convert to Invoice
+              {t('quotation.convertToInvoice')}
             </Button>
           </Col>
           <Col>
             <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={saving}>
-              Save
+              {t('common.save')}
             </Button>
           </Col>
           <Col>
             <Button icon={<FilePdfOutlined />} onClick={() => handleSave(true, selectedTemplate)} loading={saving}
               style={{ background: '#52c41a', borderColor: '#52c41a', color: 'white' }}>
-              PDF
+              {t('common.pdf')}
             </Button>
           </Col>
         </Row>

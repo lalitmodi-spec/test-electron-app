@@ -10,36 +10,33 @@ import {
   DeleteFilled, ReloadOutlined
 } from '@ant-design/icons';
 import { getActivityLog, clearActivityLog } from '../db';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
 
 const TYPE_CONFIG = {
-  create: { color: '#52c41a', icon: <FileTextOutlined />, label: 'Created' },
-  update: { color: '#6366f1', icon: <SettingOutlined />, label: 'Updated' },
-  delete: { color: '#ff4d4f', icon: <DeleteFilled />, label: 'Deleted' },
-  payment: { color: '#52c41a', icon: <DollarOutlined />, label: 'Payment' },
-  purchase: { color: '#13c2c2', icon: <ShoppingCartOutlined />, label: 'Purchase' },
-  invoice: { color: '#6366f1', icon: <FileTextOutlined />, label: 'Invoice' },
-  credit_note: { color: '#722ed1', icon: <AuditOutlined />, label: 'Credit Note' },
-  expense: { color: '#faad14', icon: <WalletOutlined />, label: 'Expense' },
-  vendor: { color: '#eb2f96', icon: <UserOutlined />, label: 'Vendor' },
-  customer: { color: '#52c41a', icon: <UserOutlined />, label: 'Customer' },
-  settings: { color: '#6366f1', icon: <SettingOutlined />, label: 'Settings' },
-  export: { color: '#6366f1', icon: <FileTextOutlined />, label: 'Export' },
-  import: { color: '#fa8c16', icon: <FileTextOutlined />, label: 'Import' },
-  system: { color: '#ff4d4f', icon: <WarningOutlined />, label: 'System' },
+  create: { color: '#52c41a', icon: <FileTextOutlined /> },
+  update: { color: '#6366f1', icon: <SettingOutlined /> },
+  delete: { color: '#ff4d4f', icon: <DeleteFilled /> },
+  payment: { color: '#52c41a', icon: <DollarOutlined /> },
+  purchase: { color: '#13c2c2', icon: <ShoppingCartOutlined /> },
+  invoice: { color: '#6366f1', icon: <FileTextOutlined /> },
+  credit_note: { color: '#722ed1', icon: <AuditOutlined /> },
+  expense: { color: '#faad14', icon: <WalletOutlined /> },
+  vendor: { color: '#eb2f96', icon: <UserOutlined /> },
+  customer: { color: '#52c41a', icon: <UserOutlined /> },
+  settings: { color: '#6366f1', icon: <SettingOutlined /> },
+  export: { color: '#6366f1', icon: <FileTextOutlined /> },
+  import: { color: '#fa8c16', icon: <FileTextOutlined /> },
+  system: { color: '#ff4d4f', icon: <WarningOutlined /> },
 };
 
-function getTypeTag(type) {
-  const cfg = TYPE_CONFIG[type] || { color: '#6366f1', icon: <ClockCircleOutlined />, label: type };
-  return (
-    <Tag color={cfg.color} style={{ margin: 0 }}>
-      {cfg.icon} {cfg.label}
-    </Tag>
-  );
-}
+const TYPE_TRANSLATION_KEY = {
+  credit_note: 'creditNote',
+};
 
 export default function ActivityLog() {
+  const { t } = useLanguage();
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -47,6 +44,16 @@ export default function ActivityLog() {
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 25;
+
+  function getTypeTag(type) {
+    const cfg = TYPE_CONFIG[type] || { color: '#6366f1', icon: <ClockCircleOutlined /> };
+    const key = TYPE_TRANSLATION_KEY[type] || type;
+    return (
+      <Tag color={cfg.color} style={{ margin: 0 }}>
+        {cfg.icon} {t(`activity.${key}`)}
+      </Tag>
+    );
+  }
 
   async function load() {
     setLoading(true);
@@ -69,17 +76,17 @@ export default function ActivityLog() {
 
   async function handleClear() {
     await clearActivityLog();
-    message.success('Activity log cleared');
+    message.success(t('activity.clearLog'));
     load();
   }
 
-  const types = Object.keys(TYPE_CONFIG);
+  const typeOptions = Object.keys(TYPE_CONFIG);
 
   const columns = [
     {
-      title: 'Timestamp', dataIndex: 'timestamp', key: 'timestamp', width: 170,
-      render: (t) => {
-        const d = new Date(t);
+      title: t('activity.timestamp'), dataIndex: 'timestamp', key: 'timestamp', width: 170,
+      render: (ts) => {
+        const d = new Date(ts);
         const now = new Date();
         const diff = now - d;
         const mins = Math.floor(diff / 60000);
@@ -100,12 +107,12 @@ export default function ActivityLog() {
       sorter: (a, b) => a.timestamp?.localeCompare(b.timestamp),
     },
     {
-      title: 'Type', dataIndex: 'type', key: 'type', width: 120,
-      render: (t) => getTypeTag(t),
+      title: t('activity.type'), dataIndex: 'type', key: 'type', width: 120,
+      render: (type) => getTypeTag(type),
     },
     {
-      title: 'Action', dataIndex: 'message', key: 'message',
-      render: (t) => <Text>{t}</Text>,
+      title: t('activity.message'), dataIndex: 'message', key: 'message',
+      render: (msg) => <Text>{msg}</Text>,
     },
   ];
 
@@ -113,15 +120,15 @@ export default function ActivityLog() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={3} style={{ margin: 0 }}>Activity Log</Title>
-          <Text type="secondary">Track all actions across the system</Text>
+          <Title level={3} style={{ margin: 0 }}>{t('activity.title')}</Title>
+          <Text type="secondary">{t('activity.title')}</Text>
         </Col>
         <Col>
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>Refresh</Button>
-            <Popconfirm title="Clear all activity log?" description="This cannot be undone!"
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>{t('common.refresh')}</Button>
+            <Popconfirm title={t('activity.clearLog')} description={t('msg.noUndo')}
               onConfirm={handleClear}>
-              <Button danger icon={<DeleteOutlined />}>Clear Log</Button>
+              <Button danger icon={<DeleteOutlined />}>{t('activity.clearLog')}</Button>
             </Popconfirm>
           </Space>
         </Col>
@@ -131,7 +138,7 @@ export default function ActivityLog() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
             <Statistic
-              title={<Space size={4}><ClockCircleOutlined style={{ color: '#6366f1' }} />Total Events</Space>}
+              title={<Space size={4}><ClockCircleOutlined style={{ color: '#6366f1' }} />{t('activity.total')}</Space>}
               value={total}
               valueStyle={{ color: '#6366f1', fontSize: 22 }}
             />
@@ -140,9 +147,9 @@ export default function ActivityLog() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
             <Statistic
-              title={<Space size={4}><DollarOutlined style={{ color: '#52c41a' }} />Payments</Space>}
+              title={<Space size={4}><DollarOutlined style={{ color: '#52c41a' }} />{t('activity.payment')}</Space>}
               value={items.filter(i => i.type === 'payment').length}
-              suffix={`of ${total}`}
+              suffix={`${t('common.total')} ${total}`}
               valueStyle={{ color: '#52c41a', fontSize: 22 }}
             />
           </Card>
@@ -150,9 +157,9 @@ export default function ActivityLog() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}>
             <Statistic
-              title={<Space size={4}><ShoppingCartOutlined style={{ color: '#faad14' }} />Purchases</Space>}
+              title={<Space size={4}><ShoppingCartOutlined style={{ color: '#faad14' }} />{t('activity.purchase')}</Space>}
               value={items.filter(i => i.type === 'purchase').length}
-              suffix={`of ${total}`}
+              suffix={`${t('common.total')} ${total}`}
               valueStyle={{ color: '#faad14', fontSize: 22 }}
             />
           </Card>
@@ -163,16 +170,19 @@ export default function ActivityLog() {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={8}>
-              <Input prefix={<SearchOutlined />} placeholder="Search actions..."
+              <Input prefix={<SearchOutlined />} placeholder={t('placeholder.search')}
                 value={search} onChange={e => setSearch(e.target.value)} allowClear />
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Select value={typeFilter} onChange={setTypeFilter} placeholder="All Types" allowClear style={{ width: '100%' }}>
-                {types.map(t => (
-                  <Select.Option key={t} value={t}>
-                    {TYPE_CONFIG[t]?.label || t}
-                  </Select.Option>
-                ))}
+              <Select value={typeFilter} onChange={setTypeFilter} placeholder={t('activity.type')} allowClear style={{ width: '100%' }}>
+                {typeOptions.map(typeVal => {
+                  const key = TYPE_TRANSLATION_KEY[typeVal] || typeVal;
+                  return (
+                    <Select.Option key={typeVal} value={typeVal}>
+                      {t(`activity.${key}`)}
+                    </Select.Option>
+                  );
+                })}
               </Select>
             </Col>
           </Row>
@@ -181,10 +191,10 @@ export default function ActivityLog() {
           pagination={{
             current: page, pageSize, total,
             onChange: setPage,
-            showTotal: (t) => `${t} events`,
+            showTotal: (totalCount) => `${totalCount} ${t('activity.total').toLowerCase()}`,
             showSizeChanger: false,
           }}
-          scroll={{ x: 600 }} locale={{ emptyText: 'No activity yet' }} />
+          scroll={{ x: 600 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
     </div>
   );

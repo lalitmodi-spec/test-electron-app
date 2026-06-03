@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   Form, Input, Select, DatePicker, InputNumber, Button, Table, Card, Typography, Space,
   message, Divider, Row, Col, Popconfirm, Modal, Tag, Collapse
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, SaveOutlined, FilePdfOutlined, ArrowLeftOutlined,
-  DollarOutlined, TruckOutlined
+  DollarOutlined, TruckOutlined, BellOutlined, SwapOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import db, { getSettings, logActivity, recordPayment, getPaymentsForInvoice, getNextInvoiceNo } from '../db';
@@ -31,8 +32,10 @@ export default function InvoiceForm() {
   const [paymentForm] = Form.useForm();
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const [showTransport, setShowTransport] = useState(false);
+  const [showReminder, setShowReminder] = useState(false);
   const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
   const [invoiceNo, setInvoiceNo] = useState('');
+  const { t } = useLanguage();
 
   useEffect(() => {
     Promise.all([
@@ -66,7 +69,12 @@ export default function InvoiceForm() {
               customerAddress: inv.customerAddress || '',
               customerShippingAddress: inv.customerShippingAddress || '',
               customerStateCode: inv.customerStateCode || '',
+              customerEmail: inv.customerEmail || '',
+              customerPhone: inv.customerPhone || '',
               paymentMethod: inv.paymentMethod || '',
+              paymentTerms: inv.paymentTerms || '',
+              poNumber: inv.poNumber || '',
+              reverseCharge: inv.reverseCharge || false,
               notes: inv.notes || '',
               transporterName: inv.transporterName || '',
               vehicleNumber: inv.vehicleNumber || '',
@@ -74,8 +82,12 @@ export default function InvoiceForm() {
               placeOfSupply: inv.placeOfSupply || '',
               modeOfTransport: inv.modeOfTransport || '',
               lrNumber: inv.lrNumber || '',
+              reminderDate: inv.reminderDate ? dayjs(inv.reminderDate) : null,
+              reminderSent: inv.reminderSent || false,
+              reminderNote: inv.reminderNote || '',
             });
             setShowTransport(Boolean(inv.transporterName || inv.vehicleNumber));
+            setShowReminder(Boolean(inv.reminderDate || inv.reminderNote));
             setDiscount(Number(inv.discount) || 0);
             if (inv.items?.length > 0) {
               setItems(inv.items.map((item, i) => ({ ...item, key: i + 1 })));
@@ -146,6 +158,8 @@ export default function InvoiceForm() {
       customerAddress: cust ? cust.address : '',
       customerShippingAddress: cust ? (cust.shippingAddress || cust.address) : '',
       customerStateCode: cust ? cust.stateCode : '',
+      customerEmail: cust ? cust.email : '',
+      customerPhone: cust ? cust.phone : '',
     });
   };
 
@@ -176,6 +190,11 @@ export default function InvoiceForm() {
         customerAddress: values.customerAddress || '',
         customerShippingAddress: values.customerShippingAddress || '',
         customerStateCode: values.customerStateCode || '',
+        customerEmail: values.customerEmail || '',
+        customerPhone: values.customerPhone || '',
+        poNumber: values.poNumber || '',
+        paymentTerms: values.paymentTerms || '',
+        reverseCharge: values.reverseCharge || false,
         status: values.status || 'unpaid',
         paymentMethod: values.paymentMethod || '',
         notes: values.notes || '',
@@ -187,6 +206,9 @@ export default function InvoiceForm() {
         placeOfSupply: showTransport ? (values.placeOfSupply || '') : '',
         modeOfTransport: showTransport ? (values.modeOfTransport || '') : '',
         lrNumber: showTransport ? (values.lrNumber || '') : '',
+        reminderDate: showReminder && values.reminderDate ? values.reminderDate.format('YYYY-MM-DD') : '',
+        reminderSent: showReminder ? (values.reminderSent || false) : false,
+        reminderNote: showReminder ? (values.reminderNote || '') : '',
         ...totals,
       };
 
@@ -205,13 +227,13 @@ export default function InvoiceForm() {
         await logActivity('pdf', `Exported PDF: ${data.invoiceNo}`);
       }
 
-      message.success(withPdf ? 'Invoice saved & PDF downloaded!' : 'Invoice saved!');
+      message.success(t('msg.saved'));
       navigate('/invoices');
     } catch (err) {
       if (err.errorFields) {
-        message.error('Please fill in all required fields');
+        message.error(t('msg.requiredFields'));
       } else {
-        message.error('Error saving invoice');
+        message.error(t('msg.errorSaving'));
       }
     } finally {
       setSaving(false);
@@ -228,7 +250,7 @@ export default function InvoiceForm() {
       reference: values.reference || '',
       note: values.note || '',
     });
-    message.success('Payment recorded');
+    message.success(t('msg.saved'));
     setShowPayment(false);
     paymentForm.resetFields();
     getPaymentsForInvoice(Number(id)).then(setPayments);
@@ -236,35 +258,35 @@ export default function InvoiceForm() {
 
   const itemColumns = [
     {
-      title: 'Item', dataIndex: 'name', key: 'name', width: '26%',
+      title: t('invoice.items'), dataIndex: 'name', key: 'name', width: '26%',
       render: (_, record) => (
         <Space.Compact style={{ width: '100%' }}>
           {products.length > 0 && (
-            <Select showSearch placeholder="Prod" style={{ width: 85 }}
+            <Select showSearch placeholder={t('placeholder.search')} style={{ width: 85 }}
               onChange={(val) => selectProduct(record.key, val)}
               filterOption={(input, option) => option.children?.toLowerCase().includes(input.toLowerCase())}>
               {products.map(p => <Select.Option key={p.id} value={p.id}>{p.name}</Select.Option>)}
             </Select>
           )}
           <Input value={record.name} onChange={e => updateItem(record.key, 'name', e.target.value)}
-            placeholder="Item name" style={{ flex: 1 }} />
+            placeholder={t('placeholder.itemName')} style={{ flex: 1 }} />
         </Space.Compact>
       )
     },
     {
       title: 'HSN', dataIndex: 'hsn', key: 'hsn', width: 80,
-      render: (_, record) => <Input value={record.hsn} onChange={e => updateItem(record.key, 'hsn', e.target.value)} placeholder="HSN" />
+      render: (_, record) => <Input value={record.hsn} onChange={e => updateItem(record.key, 'hsn', e.target.value)} placeholder={t('placeholder.hsn')} />
     },
     {
-      title: 'Qty', dataIndex: 'qty', key: 'qty', width: 70,
+      title: t('invoice.qty'), dataIndex: 'qty', key: 'qty', width: 70,
       render: (_, record) => <InputNumber min={1} value={record.qty} onChange={v => updateItem(record.key, 'qty', v)} style={{ width: '100%' }} />
     },
     {
-      title: 'Rate', dataIndex: 'rate', key: 'rate', width: 100,
+      title: t('invoice.rate'), dataIndex: 'rate', key: 'rate', width: 100,
       render: (_, record) => <InputNumber min={0} step={0.01} prefix="₹" value={record.rate} onChange={v => updateItem(record.key, 'rate', v)} style={{ width: '100%' }} />
     },
     {
-      title: 'Tax%', dataIndex: 'taxRate', key: 'taxRate', width: 75,
+      title: t('invoice.taxRate'), dataIndex: 'taxRate', key: 'taxRate', width: 75,
       render: (_, record) => (
         <Select value={record.taxRate} onChange={v => updateItem(record.key, 'taxRate', v)} style={{ width: '100%' }}>
           {[0, 5, 12, 18, 28].map(t => <Select.Option key={t} value={t}>{t}%</Select.Option>)}
@@ -272,13 +294,13 @@ export default function InvoiceForm() {
       )
     },
     {
-      title: 'Amount', dataIndex: 'amount', key: 'amount', width: 100, align: 'right',
+      title: t('common.amount'), dataIndex: 'amount', key: 'amount', width: 100, align: 'right',
       render: (v) => <Text strong>₹{Number(v).toFixed(2)}</Text>
     },
     {
       title: '', key: 'action', width: 45,
       render: (_, record) => (
-        <Popconfirm title="Remove item?" onConfirm={() => removeItem(record.key)}>
+        <Popconfirm title={t('common.remove')} onConfirm={() => removeItem(record.key)}>
           <Button type="text" danger icon={<DeleteOutlined />} disabled={items.length <= 1} size="small" />
         </Popconfirm>
       )
@@ -286,9 +308,9 @@ export default function InvoiceForm() {
   ];
 
   const paymentColumns = [
-    { title: 'Date', dataIndex: 'date', key: 'date', width: 100 },
-    { title: 'Method', dataIndex: 'method', key: 'method', width: 100, render: (t) => <Tag>{t}</Tag> },
-    { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => <Text strong style={{ color: '#52c41a' }}>₹{Number(v).toFixed(2)}</Text> },
+    { title: t('common.date'), dataIndex: 'date', key: 'date', width: 100 },
+    { title: t('invoice.paymentMethod'), dataIndex: 'method', key: 'method', width: 100, render: (t) => <Tag>{t}</Tag> },
+    { title: t('common.amount'), dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => <Text strong style={{ color: '#52c41a' }}>₹{Number(v).toFixed(2)}</Text> },
     { title: 'Reference', dataIndex: 'reference', key: 'reference', render: (t) => t || '-' },
   ];
 
@@ -296,15 +318,14 @@ export default function InvoiceForm() {
     <div>
       <Row align="middle" style={{ marginBottom: 20 }}>
         <Col flex="auto">
-          <Title level={3} style={{ margin: 0 }}>{isEdit ? 'Edit Invoice' : 'New Invoice'}</Title>
-          <Text type="secondary">Create a GST-compliant invoice</Text>
+          <Title level={3} style={{ margin: 0 }}>{t(isEdit ? 'invoice.editTitle' : 'invoice.newTitle')}</Title>
         </Col>
         <Col>
           <Space>
             <Button icon={<FilePdfOutlined />} size="small" onClick={() => setTemplatePreviewOpen(true)}>
-              Template: {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)}
+              {t('invoice.template')}: {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)}
             </Button>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/invoices')}>Back</Button>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/invoices')}>{t('common.back')}</Button>
           </Space>
         </Col>
       </Row>
@@ -315,26 +336,43 @@ export default function InvoiceForm() {
         }}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={6}>
-              <Form.Item label="Invoice No" name="invoiceNo" rules={[{ required: true }]}>
+              <Form.Item label={t('invoice.invoiceNo')} name="invoiceNo" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6} md={4}>
-              <Form.Item label="Date" name="date" rules={[{ required: true }]}>
+              <Form.Item label={t('common.date')} name="date" rules={[{ required: true }]}>
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6} md={4}>
-              <Form.Item label="Due Date" name="dueDate">
+              <Form.Item label={t('invoice.dueDate')} name="dueDate">
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={12} md={4}>
-              <Form.Item label="Status" name="status">
+            <Col xs={12} sm={6} md={4}>
+              <Form.Item label={t('invoice.poNumber')} name="poNumber">
+                <Input placeholder={t('placeholder.search')} />
+              </Form.Item>
+            </Col>
+            <Col xs={12} sm={6} md={3}>
+              <Form.Item label={t('common.status')} name="status">
                 <Select>
-                  <Select.Option value="unpaid">Unpaid</Select.Option>
-                  <Select.Option value="paid">Paid</Select.Option>
-                  <Select.Option value="partial">Partial</Select.Option>
+                  <Select.Option value="unpaid">{t('common.unpaid')}</Select.Option>
+                  <Select.Option value="paid">{t('common.paid')}</Select.Option>
+                  <Select.Option value="partial">{t('common.partial')}</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={12} sm={6} md={3}>
+              <Form.Item label={t('invoice.paymentTerms')} name="paymentTerms">
+                <Select allowClear>
+                  <Select.Option value="due_on_receipt">{t('settingsPaymentTerms.dueOnReceipt')}</Select.Option>
+                  <Select.Option value="net_7">{t('settingsPaymentTerms.net7')}</Select.Option>
+                  <Select.Option value="net_15">{t('settingsPaymentTerms.net15')}</Select.Option>
+                  <Select.Option value="net_30">{t('settingsPaymentTerms.net30')}</Select.Option>
+                  <Select.Option value="net_45">{t('settingsPaymentTerms.net45')}</Select.Option>
+                  <Select.Option value="net_60">{t('settingsPaymentTerms.net60')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -344,8 +382,8 @@ export default function InvoiceForm() {
 
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item label="Customer" name="customerId">
-                <Select showSearch placeholder="Select customer" onChange={selectCustomer}
+              <Form.Item label={t('invoice.customer')} name="customerId">
+                <Select showSearch placeholder={t('placeholder.selectCustomer')} onChange={selectCustomer}
                   filterOption={(input, option) => option.children?.toLowerCase().includes(input.toLowerCase())} allowClear>
                   {customers.map(c => (
                     <Select.Option key={c.id} value={c.id}>
@@ -356,23 +394,23 @@ export default function InvoiceForm() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item label="Contact Name" name="customerName">
-                <Input placeholder="Customer name" />
+              <Form.Item label={t('invoice.contactName')} name="customerName">
+                <Input placeholder={t('placeholder.search')} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item label="Company Name" name="customerCompany">
-                <Input placeholder="Company name" />
+              <Form.Item label={t('invoice.companyName')} name="customerCompany">
+                <Input placeholder={t('placeholder.search')} />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6}>
-              <Form.Item label="GSTIN" name="customerGstin">
+              <Form.Item label={t('invoice.gstin')} name="customerGstin">
                 <Input placeholder="GSTIN" />
               </Form.Item>
             </Col>
             <Col xs={12} sm={6}>
-              <Form.Item label="State" name="customerState">
-                <Select showSearch placeholder="Select state" allowClear>
+              <Form.Item label={t('invoice.state')} name="customerState">
+                <Select showSearch placeholder={t('placeholder.search')} allowClear>
                   {['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Puducherry','Chandigarh','Andaman and Nicobar','Dadra and Nagar Haveli','Daman and Diu','Lakshadweep','Ladakh','Jammu and Kashmir'].map(s => (
                     <Select.Option key={s} value={s}>{s}</Select.Option>
                   ))}
@@ -380,25 +418,43 @@ export default function InvoiceForm() {
               </Form.Item>
             </Col>
             <Col xs={12} sm={6}>
-              <Form.Item label="State Code" name="customerStateCode">
+              <Form.Item label={t('invoice.stateCode')} name="customerStateCode">
                 <Input placeholder="e.g. 27" />
               </Form.Item>
             </Col>
             <Col xs={24}>
-              <Form.Item label="Billing Address" name="customerAddress">
-                <Input.TextArea rows={2} placeholder="Billing address" />
+              <Form.Item label={t('invoice.billingAddress')} name="customerAddress">
+                <Input.TextArea rows={2} placeholder={t('placeholder.address')} />
               </Form.Item>
             </Col>
             <Col xs={24}>
-              <Form.Item label="Shipping Address" name="customerShippingAddress">
+              <Form.Item label={t('invoice.shippingAddress')} name="customerShippingAddress">
                 <Input.TextArea rows={2} placeholder="Shipping address (if different)" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label={t('invoice.customerEmail')} name="customerEmail">
+                <Input placeholder={t('placeholder.email')} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label={t('invoice.customerPhone')} name="customerPhone">
+                <Input placeholder={t('placeholder.phone')} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label={t('invoice.reverseCharge')} name="reverseCharge" valuePropName="checked">
+                <Select>
+                  <Select.Option value={false}>{t('common.no')}</Select.Option>
+                  <Select.Option value={true}>{t('common.yes')}</Select.Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>
 
           <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-            <Col><Text strong>Invoice Items</Text></Col>
-            <Col><Button type="dashed" icon={<PlusOutlined />} onClick={addItem}>Add Item</Button></Col>
+            <Col><Text strong>{t('invoice.items')}</Text></Col>
+            <Col><Button type="dashed" icon={<PlusOutlined />} onClick={addItem}>{t('invoice.addItem')}</Button></Col>
           </Row>
 
           <Table dataSource={items} columns={itemColumns} rowKey="key" pagination={false}
@@ -409,17 +465,17 @@ export default function InvoiceForm() {
           <Row justify="end">
             <Col xs={24} sm={12} md={8}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Row justify="space-between"><Text type="secondary">Subtotal</Text><Text>₹{totals.subtotal.toFixed(2)}</Text></Row>
-                <Row justify="space-between"><Text type="secondary">CGST</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
-                <Row justify="space-between"><Text type="secondary">SGST</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.subtotal')}</Text><Text>₹{totals.subtotal.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')}</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')}</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
                 <Row justify="space-between" align="middle">
-                  <Text type="secondary">Discount</Text>
+                  <Text type="secondary">{t('invoice.discount')}</Text>
                   <InputNumber prefix="₹" min={0} step={0.01} value={discount}
                     onChange={v => setDiscount(v || 0)} style={{ width: 120 }} />
                 </Row>
                 <Divider style={{ margin: '4px 0' }} />
                 <Row justify="space-between">
-                  <Text strong style={{ fontSize: 16 }}>Grand Total</Text>
+                  <Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text>
                   <Text strong style={{ fontSize: 16, color: '#6366f1' }}>₹{totals.grandTotal.toFixed(2)}</Text>
                 </Row>
               </div>
@@ -432,13 +488,13 @@ export default function InvoiceForm() {
             <Col>
               <Space>
                 <TruckOutlined />
-                <Text strong>Transport Details</Text>
+                <Text strong>{t('invoice.transportDetails')}</Text>
               </Space>
             </Col>
             <Col>
               <Button size="small" type={showTransport ? 'primary' : 'default'}
                 onClick={() => setShowTransport(!showTransport)}>
-                {showTransport ? 'Remove Transport' : 'Add Transport'}
+                {showTransport ? t('invoice.removeTransport') : t('invoice.addTransport')}
               </Button>
             </Col>
           </Row>
@@ -446,38 +502,76 @@ export default function InvoiceForm() {
           {showTransport && (
             <Row gutter={16} style={{ marginBottom: 16 }}>
               <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Transporter Name" name="transporterName">
+                <Form.Item label={t('invoice.transporterName')} name="transporterName">
                   <Input placeholder="Transporter / Courier" />
                 </Form.Item>
               </Col>
               <Col xs={12} sm={6} md={4}>
-                <Form.Item label="Vehicle No" name="vehicleNumber">
+                <Form.Item label={t('invoice.vehicleNumber')} name="vehicleNumber">
                   <Input placeholder="Vehicle" />
                 </Form.Item>
               </Col>
               <Col xs={12} sm={6} md={4}>
-                <Form.Item label="LR/Bill No" name="lrNumber">
+                <Form.Item label={t('invoice.lrNumber')} name="lrNumber">
                   <Input placeholder="LR No" />
                 </Form.Item>
               </Col>
               <Col xs={12} sm={6} md={4}>
-                <Form.Item label="Mode" name="modeOfTransport">
+                <Form.Item label={t('invoice.modeOfTransport')} name="modeOfTransport">
                   <Select allowClear>
-                    <Select.Option value="Road">Road</Select.Option>
-                    <Select.Option value="Air">Air</Select.Option>
-                    <Select.Option value="Rail">Rail</Select.Option>
-                    <Select.Option value="Sea">Sea</Select.Option>
+                    <Select.Option value="Road">{t('transport.road')}</Select.Option>
+                    <Select.Option value="Air">{t('transport.air')}</Select.Option>
+                    <Select.Option value="Rail">{t('transport.rail')}</Select.Option>
+                    <Select.Option value="Sea">{t('transport.sea')}</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col xs={12} sm={6} md={4}>
-                <Form.Item label="Date of Supply" name="dateOfSupply">
+                <Form.Item label={t('invoice.dateOfSupply')} name="dateOfSupply">
                   <DatePicker style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Form.Item label="Place of Supply" name="placeOfSupply">
+                <Form.Item label={t('invoice.placeOfSupply')} name="placeOfSupply">
                   <Input placeholder="Place of supply" />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
+
+          <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
+            <Col>
+              <Space>
+                <BellOutlined />
+                <Text strong>{t('invoice.paymentReminder')}</Text>
+              </Space>
+            </Col>
+            <Col>
+              <Button size="small" type={showReminder ? 'primary' : 'default'}
+                onClick={() => setShowReminder(!showReminder)}>
+                {showReminder ? t('invoice.removeReminder') : t('invoice.setReminder')}
+              </Button>
+            </Col>
+          </Row>
+
+          {showReminder && (
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col xs={24} sm={12} md={8}>
+                <Form.Item label={t('invoice.reminderDate')} name="reminderDate">
+                  <DatePicker style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Form.Item label={t('invoice.reminderSent')} name="reminderSent" valuePropName="checked">
+                  <Select>
+                    <Select.Option value={false}>{t('common.no')}</Select.Option>
+                    <Select.Option value={true}>{t('common.yes')}</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12} md={10}>
+                <Form.Item label={t('invoice.reminderNote')} name="reminderNote">
+                  <Input placeholder={t('placeholder.notes')} />
                 </Form.Item>
               </Col>
             </Row>
@@ -485,18 +579,18 @@ export default function InvoiceForm() {
 
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item label="Payment Method" name="paymentMethod">
+              <Form.Item label={t('invoice.paymentMethod')} name="paymentMethod">
                 <Select allowClear>
-                  <Select.Option value="Cash">Cash</Select.Option>
-                  <Select.Option value="UPI">UPI</Select.Option>
-                  <Select.Option value="Bank Transfer">Bank Transfer</Select.Option>
-                  <Select.Option value="Card">Card</Select.Option>
-                  <Select.Option value="Cheque">Cheque</Select.Option>
+                  <Select.Option value="Cash">{t('paymentMethods.cash')}</Select.Option>
+                  <Select.Option value="UPI">{t('paymentMethods.upi')}</Select.Option>
+                  <Select.Option value="Bank Transfer">{t('paymentMethods.bankTransfer')}</Select.Option>
+                  <Select.Option value="Card">{t('paymentMethods.card')}</Select.Option>
+                  <Select.Option value="Cheque">{t('paymentMethods.cheque')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item label="Notes" name="notes">
+              <Form.Item label={t('common.notes')} name="notes">
                 <Input.TextArea rows={2} />
               </Form.Item>
             </Col>
@@ -510,9 +604,9 @@ export default function InvoiceForm() {
               label: (
                 <Space>
                   <DollarOutlined style={{ color: '#52c41a' }} />
-                  <Text>Payment History ({payments.length})</Text>
-                  <Tag color="green">₹{totalPaid.toFixed(2)} paid</Tag>
-                  {balance > 0 && <Tag color="red">₹{balance.toFixed(2)} due</Tag>}
+                  <Text>{t('invoice.paymentHistory')} ({payments.length})</Text>
+                  <Tag color="green">₹{totalPaid.toFixed(2)} {t('common.paid')}</Tag>
+                  {balance > 0 && <Tag color="red">₹{balance.toFixed(2)} {t('invoice.balance')}</Tag>}
                 </Space>
               ),
               children: <Table dataSource={payments} columns={paymentColumns} rowKey="id" pagination={false} size="small" />,
@@ -528,12 +622,12 @@ export default function InvoiceForm() {
                 paymentForm.setFieldsValue({ date: dayjs(), method: 'Cash', amount: balance > 0 ? balance : '' });
                 setShowPayment(true);
               }}>
-                Add Payment
+                {t('invoice.recordPayment')}
               </Button>
             </Col>
           )}
-          <Col><Button onClick={() => navigate('/invoices')}>Cancel</Button></Col>
-          <Col><Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={saving}>Save</Button></Col>
+          <Col><Button onClick={() => navigate('/invoices')}>{t('common.cancel')}</Button></Col>
+          <Col><Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={saving}>{t('common.save')}</Button></Col>
           <Col>
             <Button icon={<FilePdfOutlined />} onClick={() => handleSave(true, selectedTemplate)} loading={saving}
               style={{ background: '#52c41a', borderColor: '#52c41a', color: 'white' }}>
@@ -543,25 +637,25 @@ export default function InvoiceForm() {
         </Row>
       </Card>
 
-      <Modal title="Record Payment" open={showPayment} onCancel={() => setShowPayment(false)}
-        onOk={handleRecordPayment} okText="Record" width={450}>
+      <Modal title={t('invoice.recordPayment')} open={showPayment} onCancel={() => setShowPayment(false)}
+        onOk={handleRecordPayment} okText={t('common.save')} width={450}>
         <Form form={paymentForm} layout="vertical">
-          <Form.Item name="amount" label="Amount (₹)" rules={[{ required: true }]}>
+          <Form.Item name="amount" label={t('common.amount')} rules={[{ required: true }]}>
             <InputNumber min={1} max={totals.grandTotal} step={0.01} prefix="₹" style={{ width: '100%' }} />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="method" label="Method">
+              <Form.Item name="method" label={t('invoice.paymentMethod')}>
                 <Select>
-                  <Select.Option value="Cash">Cash</Select.Option>
-                  <Select.Option value="UPI">UPI</Select.Option>
-                  <Select.Option value="Bank Transfer">Bank Transfer</Select.Option>
-                  <Select.Option value="Card">Card</Select.Option>
+                  <Select.Option value="Cash">{t('paymentMethods.cash')}</Select.Option>
+                  <Select.Option value="UPI">{t('paymentMethods.upi')}</Select.Option>
+                  <Select.Option value="Bank Transfer">{t('paymentMethods.bankTransfer')}</Select.Option>
+                  <Select.Option value="Card">{t('paymentMethods.card')}</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="date" label="Date">
+              <Form.Item name="date" label={t('common.date')}>
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
@@ -569,7 +663,7 @@ export default function InvoiceForm() {
           <Form.Item name="reference" label="Reference">
             <Input placeholder="Cheque/UTR no." />
           </Form.Item>
-          <Form.Item name="note" label="Note">
+          <Form.Item name="note" label={t('common.notes')}>
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
