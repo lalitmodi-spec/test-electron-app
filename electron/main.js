@@ -1,10 +1,12 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from "electron";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
+
+Menu.setApplicationMenu(null);
 
 function getLogoDir() {
   const dir = path.join(app.getPath("userData"), "logos");
@@ -23,7 +25,7 @@ function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, "preload.js"),
         },
-        titleBarStyle: "hiddenInset",
+        frame: false,
         show: false,
     });
 
@@ -118,6 +120,14 @@ ipcMain.handle("save-file", async (event, { data, filename, filters }) => {
   fs.writeFileSync(filePath, data, "utf-8");
   return { success: true, filePath };
 });
+
+ipcMain.handle("window-minimize", () => BrowserWindow.getFocusedWindow()?.minimize());
+ipcMain.handle("window-maximize", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win?.isMaximized()) win.unmaximize(); else win?.maximize();
+});
+ipcMain.handle("window-close", () => BrowserWindow.getFocusedWindow()?.close());
+ipcMain.handle("window-is-maximized", () => BrowserWindow.getFocusedWindow()?.isMaximized());
 
 ipcMain.handle("send-email", async (event, { to, subject, body, attachmentPath }) => {
   const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

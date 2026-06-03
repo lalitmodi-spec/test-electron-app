@@ -11,4 +11,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     saveCsv: (data) => ipcRenderer.invoke("save-csv", data),
     saveFile: (data) => ipcRenderer.invoke("save-file", data),
     sendEmail: (data) => ipcRenderer.invoke("send-email", data),
+    minimize: () => ipcRenderer.invoke("window-minimize"),
+    maximize: () => ipcRenderer.invoke("window-maximize"),
+    close: () => ipcRenderer.invoke("window-close"),
+    isMaximized: () => ipcRenderer.invoke("window-is-maximized"),
 });

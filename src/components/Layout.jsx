@@ -6,7 +6,8 @@ import {
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
   MenuOutlined, SunOutlined, MoonOutlined, SearchOutlined, AuditOutlined,
   DollarOutlined, ShoppingCartOutlined, TeamOutlined, HistoryOutlined,
-  FormOutlined, InfoCircleOutlined
+  FormOutlined, InfoCircleOutlined,
+  CloseOutlined, MinusOutlined, ExpandOutlined, CompressOutlined
 } from '@ant-design/icons';
 import { getSettings } from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -51,7 +52,14 @@ export default function AppLayout() {
   const [themeMode, setThemeMode] = useState('dark');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [maximized, setMaximized] = useState(false);
   const { t, lang, setLang, isHindi } = useLanguage();
+
+  useEffect(() => {
+    if (window.electronAPI?.isMaximized) {
+      window.electronAPI.isMaximized().then(setMaximized);
+    }
+  }, []);
 
   useEffect(() => {
     getSettings().then(s => { if (s.theme) setThemeMode(s.theme); });
@@ -184,8 +192,10 @@ export default function AppLayout() {
           <Header style={{
             padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12,
             height: 56, borderBottom: '1px solid var(--border-color)',
-            background: 'var(--bg-card)', position: 'sticky', top: 0, zIndex: 10
+            background: 'var(--bg-card)', position: 'sticky', top: 0, zIndex: 10,
+            WebkitAppRegion: 'drag', justifyContent: 'space-between',
           }}>
+            <div style={{ WebkitAppRegion: 'no-drag', display: 'flex', alignItems: 'center', gap: 12 }}>
             {isMobile && (
               <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)}
                 style={{ color: 'var(--text-secondary)' }} />
@@ -203,7 +213,8 @@ export default function AppLayout() {
                 if (q) navigate(`/invoices?search=${encodeURIComponent(q)}`);
               }}
             />
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, WebkitAppRegion: 'no-drag' }}>
               <Button
                 type="text"
                 onClick={() => setLang(isHindi ? 'en' : 'hi')}
@@ -217,6 +228,18 @@ export default function AppLayout() {
                 onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
                 style={{ color: 'var(--text-secondary)' }}
               />
+              <div style={{ width: 1, height: 20, background: 'var(--border-color)', margin: '0 4px' }} />
+              <Button type="text" icon={<MinusOutlined />} onClick={() => window.electronAPI?.minimize()}
+                style={{ color: 'var(--text-secondary)', width: 32 }} />
+              <Button type="text" icon={maximized ? <CompressOutlined /> : <ExpandOutlined />}
+                onClick={() => window.electronAPI?.maximize().then(() =>
+                  window.electronAPI?.isMaximized().then(setMaximized)
+                )}
+                style={{ color: 'var(--text-secondary)', width: 32 }} />
+              <Button type="text" icon={<CloseOutlined />} onClick={() => window.electronAPI?.close()}
+                style={{ color: 'var(--text-secondary)', width: 32 }}
+                onMouseEnter={e => e.currentTarget.style.background = '#ff4d4f'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
             </div>
           </Header>
 
