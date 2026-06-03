@@ -151,25 +151,27 @@ export default function Payments() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={8}>
-          <Card size="small">
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
             <Statistic title="Total Collected" value={totalPayments} precision={2} prefix="₹"
               valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card size="small">
-            <Statistic title="Transactions" value={filtered.length} />
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
+            <Statistic title="Transactions" value={filtered.length} valueStyle={{ color: '#6366f1' }} />
           </Card>
         </Col>
       </Row>
 
-      <Card>
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
-            <Input prefix={<SearchOutlined />} placeholder="Search by invoice..."
-              value={search} onChange={e => setSearch(e.target.value)} allowClear />
-          </Col>
-        </Row>
+      <Card styles={{ body: { padding: 0 } }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Input prefix={<SearchOutlined />} placeholder="Search by invoice..."
+                value={search} onChange={e => setSearch(e.target.value)} allowClear />
+            </Col>
+          </Row>
+        </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (t) => `${t} payments` }}

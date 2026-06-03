@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Upload, Image, Divider } from 'antd';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Upload, Image, Divider, InputNumber } from 'antd';
 import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, FilePdfOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
@@ -275,7 +275,7 @@ export default function Settings() {
             <Form.Item name="invoiceNextNumber" label="Next Number">
               <InputNumber min={1} style={{ width: '100%' }} />
             </Form.Item>
-          </Col>
+          </Col>  
           <Col span={24}>
             <Form.Item name="termsConditions" label="Terms & Conditions (for PDF)">
               <Input.TextArea rows={3} placeholder="Terms and conditions..." />
@@ -368,7 +368,7 @@ export default function Settings() {
         </Col>
       </Row>
 
-      <Card>
+      <Card styles={{ body: { padding: '16px 20px' } }}>
         <Form form={form} layout="vertical">
           <Tabs items={tabItems} />
         </Form>

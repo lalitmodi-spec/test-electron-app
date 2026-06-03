@@ -5,7 +5,8 @@ import {
   DashboardOutlined, FileTextOutlined, PlusOutlined, UserOutlined,
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
   MenuOutlined, SunOutlined, MoonOutlined, SearchOutlined, AuditOutlined,
-  DollarOutlined
+  DollarOutlined, ShoppingCartOutlined, TeamOutlined, HistoryOutlined,
+  FormOutlined
 } from '@ant-design/icons';
 import { getSettings } from '../db';
 
@@ -17,10 +18,14 @@ const navItems = [
   { key: '/invoice/new', icon: PlusOutlined, label: 'New Invoice' },
   { key: '/payments', icon: DollarOutlined, label: 'Payments' },
   { key: '/credit-notes', icon: AuditOutlined, label: 'Credit Notes' },
+  { key: '/quotations', icon: FormOutlined, label: 'Quotations' },
   { key: '/customers', icon: UserOutlined, label: 'Customers' },
+  { key: '/vendors', icon: TeamOutlined, label: 'Vendors' },
+  { key: '/purchases', icon: ShoppingCartOutlined, label: 'Purchases' },
   { key: '/products', icon: ShoppingOutlined, label: 'Products' },
   { key: '/expenses', icon: WalletOutlined, label: 'Expenses' },
   { key: '/reports', icon: BarChartOutlined, label: 'Reports' },
+  { key: '/activity', icon: HistoryOutlined, label: 'Activity Log' },
   { key: '/settings', icon: SettingOutlined, label: 'Settings' },
 ];
 

@@ -156,14 +156,14 @@ export default function Expenses() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
-          <Card size="small">
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}>
             <Text type="secondary">Total Expenses</Text>
             <div><Title level={4} style={{ margin: 0, color: '#faad14' }}>₹{total.toFixed(2)}</Title></div>
           </Card>
         </Col>
         {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, amt]) => (
           <Col xs={24} sm={12} md={6} key={cat}>
-            <Card size="small">
+            <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
               <Text type="secondary">{cat}</Text>
               <div><Title level={4} style={{ margin: 0 }}>₹{amt.toFixed(2)}</Title></div>
             </Card>
@@ -171,18 +171,20 @@ export default function Expenses() {
         ))}
       </Row>
 
-      <Card>
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
-            <Input prefix={<SearchOutlined />} placeholder="Search expenses..."
-              value={search} onChange={e => setSearch(e.target.value)} allowClear />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select value={catFilter} onChange={setCatFilter} placeholder="All Categories" allowClear style={{ width: '100%' }}>
-              {categories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
-            </Select>
-          </Col>
-        </Row>
+      <Card styles={{ body: { padding: 0 } }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Input prefix={<SearchOutlined />} placeholder="Search expenses..."
+                value={search} onChange={e => setSearch(e.target.value)} allowClear />
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Select value={catFilter} onChange={setCatFilter} placeholder="All Categories" allowClear style={{ width: '100%' }}>
+                {categories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
+              </Select>
+            </Col>
+          </Row>
+        </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (t) => `${t} expenses` }}

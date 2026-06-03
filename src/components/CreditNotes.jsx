@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Card, Button, Input, Select, Space, Modal, Form, Typography, Row, Col, Popconfirm, message, Tag, Tooltip, DatePicker, InputNumber, Divider } from 'antd';
+import { Table, Card, Button, Input, Select, Space, Modal, Form, Typography, Row, Col, Popconfirm, message, Tag, Tooltip, DatePicker, InputNumber } from 'antd';
 import { PlusOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, RollbackOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import db, { logActivity, createCreditNote } from '../db';
@@ -143,13 +143,15 @@ export default function CreditNotes() {
         </Col>
       </Row>
 
-      <Card>
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
-            <Input prefix={<SearchOutlined />} placeholder="Search by CN no or customer..."
-              value={search} onChange={e => setSearch(e.target.value)} allowClear />
-          </Col>
-        </Row>
+      <Card styles={{ body: { padding: 0 } }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Input prefix={<SearchOutlined />} placeholder="Search by CN no or customer..."
+                value={search} onChange={e => setSearch(e.target.value)} allowClear />
+            </Col>
+          </Row>
+        </div>
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (t) => `${t} credit notes` }}
           scroll={{ x: 800 }} locale={{ emptyText: 'No credit notes yet' }} />

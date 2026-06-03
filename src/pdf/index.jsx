@@ -37,7 +37,12 @@ export function getAllTemplates() {
 
 export function buildInvoiceDocument(invoice, settings) {
   const Template = getTemplateComponent(settings.invoiceTemplate || 'professional');
-  return <Template invoice={invoice} settings={settings} />;
+  return <Template invoice={invoice} settings={settings} type="invoice" />;
+}
+
+export function buildQuotationDocument(quotation, settings) {
+  const Template = getTemplateComponent(settings.invoiceTemplate || 'professional');
+  return <Template invoice={quotation} settings={settings} type="quotation" />;
 }
 
 export function getDummyData() {
@@ -75,4 +80,22 @@ export async function generatePdfBase64(invoice, settings) {
 export async function generatePdfArrayBuffer(invoice, settings) {
   const blob = await generatePdfBlob(invoice, settings);
   return blob.arrayBuffer();
+}
+
+export async function generateQuotationPdfBlob(quotation, settings) {
+  const Document = buildQuotationDocument(quotation, settings);
+  const blob = await pdf(Document).toBlob();
+  return blob;
+}
+
+export async function generateAndDownloadQuotationPdf(quotation, settings) {
+  const blob = await generateQuotationPdfBlob(quotation, settings);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Quotation_${quotation.quotationNo || 'download'}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

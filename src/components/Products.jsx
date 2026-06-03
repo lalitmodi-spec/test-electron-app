@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import {
   Table, Card, Button, Input, Select, Space, Modal, Form, InputNumber, Typography,
-  Row, Col, Popconfirm, message, Tag, Tooltip
+  Row, Col, Popconfirm, message, Tag, Tooltip, Statistic, Progress
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ShoppingOutlined } from '@ant-design/icons';
-import db, { logActivity } from '../db';
+import {
+  PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
+  ShoppingOutlined, ShoppingCartOutlined, BarChartOutlined, WarningOutlined,
+  PlusCircleOutlined
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import db, { logActivity, getPurchaseSummary, adjustProductStock } from '../db';
 
 const { Title, Text } = Typography;
 
 export default function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [edit, setEdit] = useState(null);
@@ -16,10 +22,19 @@ export default function Products() {
   const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState('');
   const [loading, setLoading] = useState(false);
+  const [purchaseSummary, setPurchaseSummary] = useState({});
+  const [showStockAdjust, setShowStockAdjust] = useState(null);
+  const [adjustForm] = Form.useForm();
 
   async function load() {
     setLoading(true);
-    setProducts(await db.products.reverse().toArray());
+    const data = await db.products.reverse().toArray();
+    setProducts(data);
+    const summary = {};
+    for (const p of data) {
+      summary[p.id] = await getPurchaseSummary(p.id);
+    }
+    setPurchaseSummary(summary);
     setLoading(false);
   }
 
@@ -61,6 +76,20 @@ export default function Products() {
     load();
   }
 
+  function openStockAdjust(product) {
+    setShowStockAdjust(product);
+    adjustForm.resetFields();
+    adjustForm.setFieldsValue({ adjustment: 0, reason: 'Manual adjustment' });
+  }
+
+  async function handleStockAdjust() {
+    const values = await adjustForm.validateFields();
+    const newStock = await adjustProductStock(showStockAdjust.id, Number(values.adjustment), values.reason);
+    message.success(`Stock adjusted to ${newStock}`);
+    setShowStockAdjust(null);
+    load();
+  }
+
   const filtered = products.filter(p => {
     const match = !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.hsn?.includes(search);
     if (!stockFilter) return match;
@@ -71,15 +100,24 @@ export default function Products() {
     return match;
   });
 
-  const lowStockCount = products.filter(p => (Number(p.stock) || 0) <= (Number(p.minStock) || 0)).length;
+  const lowStockCount = products.filter(p => (Number(p.stock) || 0) <= (Number(p.minStock) || 0) && (Number(p.minStock) || 0) > 0).length;
+  const totalValue = products.reduce((s, p) => s + ((Number(p.stock) || 0) * (Number(p.price) || 0)), 0);
 
   const columns = [
-    { title: 'Name', dataIndex: 'name', key: 'name', render: (t) => <Text strong>{t}</Text> },
-    { title: 'HSN', dataIndex: 'hsn', key: 'hsn', render: (t) => t || '-' },
-    { title: 'Unit', dataIndex: 'unit', key: 'unit', render: (t) => t || 'pcs' },
+    {
+      title: 'Name', dataIndex: 'name', key: 'name',
+      render: (t) => <Text strong>{t}</Text>,
+    },
+    { title: 'HSN', dataIndex: 'hsn', key: 'hsn', render: (t) => t || '-', responsive: ['md'] },
+    { title: 'Unit', dataIndex: 'unit', key: 'unit', render: (t) => t || 'pcs', width: 60 },
     {
       title: 'Price', dataIndex: 'price', key: 'price', align: 'right',
-      render: (v, r) => <><Text>₹{Number(v).toFixed(2)}</Text> <Text type="secondary">({r.taxRate || 0}%)</Text></>,
+      render: (v, r) => (
+        <Space size={2} direction="vertical" style={{ textAlign: 'right', lineHeight: 1.2 }}>
+          <Text>₹{Number(v).toFixed(2)}</Text>
+          <Tag style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>{r.taxRate || 0}%</Tag>
+        </Space>
+      ),
       sorter: (a, b) => Number(a.price) - Number(b.price),
     },
     {
@@ -87,23 +125,62 @@ export default function Products() {
       render: (v, r) => {
         const stock = Number(v) || 0;
         const min = Number(r.minStock) || 0;
-        const isLow = stock <= min && stock > 0;
+        const isLow = stock <= min && stock > 0 && min > 0;
         const isOut = stock === 0;
+        const maxForBar = Math.max(stock, min || 10);
         return (
-          <div>
-            <Tag color={isOut ? 'error' : isLow ? 'warning' : 'success'}>
-              {isOut ? 'Out' : isLow ? 'Low' : stock} {r.unit || 'pcs'}
-            </Tag>
-            {min > 0 && <div><Text type="secondary" style={{ fontSize: 11 }}>min: {min}</Text></div>}
+          <div style={{ minWidth: 120 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Tag color={isOut ? 'error' : isLow ? 'warning' : 'success'} style={{ margin: 0 }}>
+                {isOut ? 'Out of Stock' : isLow ? 'Low' : `${stock}`}
+              </Tag>
+              <Text type="secondary" style={{ fontSize: 11 }}>{r.unit || 'pcs'}</Text>
+            </div>
+            {min > 0 && stock > 0 && (
+              <Progress
+                percent={Math.min(100, (stock / maxForBar) * 100)}
+                size="small"
+                strokeColor={isLow ? '#faad14' : '#52c41a'}
+                trailColor="rgba(255,255,255,0.08)"
+                format={() => ''}
+                style={{ margin: 0, lineHeight: 1 }}
+              />
+            )}
+            {min > 0 && (
+              <Text type="secondary" style={{ fontSize: 10 }}>min: {min}</Text>
+            )}
           </div>
         );
       },
       sorter: (a, b) => (Number(a.stock) || 0) - (Number(b.stock) || 0),
     },
     {
-      title: '', key: 'actions', width: 100, align: 'right',
+      title: 'Purchased', key: 'purchased', align: 'center', width: 100,
+      render: (_, r) => {
+        const s = purchaseSummary[r.id];
+        if (!s || s.count === 0) return <Text type="secondary">-</Text>;
+        return (
+          <Space size={2} direction="vertical" style={{ lineHeight: 1.2 }}>
+            <Text style={{ fontSize: 12 }}>{s.totalQty} {r.unit || 'pcs'}</Text>
+            <Text type="secondary" style={{ fontSize: 10 }}>₹{s.totalCost.toFixed(0)}</Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: '', key: 'actions', width: 170, align: 'right',
       render: (_, r) => (
         <Space>
+          <Tooltip title="Adjust Stock">
+            <Button size="small" icon={<PlusCircleOutlined />}
+              style={{ color: '#13c2c2' }}
+              onClick={() => openStockAdjust(r)} />
+          </Tooltip>
+          <Tooltip title="Record Purchase">
+            <Button size="small" icon={<ShoppingCartOutlined />}
+              style={{ color: '#52c41a' }}
+              onClick={() => navigate('/purchases')} />
+          </Tooltip>
           <Tooltip title="Edit"><Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} /></Tooltip>
           <Popconfirm title={`Delete ${r.name}?`} onConfirm={() => handleDelete(r.id, r.name)}>
             <Tooltip title="Delete"><Button size="small" danger icon={<DeleteOutlined />} /></Tooltip>
@@ -124,28 +201,67 @@ export default function Products() {
           </Text>
         </Col>
         <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Product</Button>
+          <Space>
+            <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/purchases')}>
+              Purchases
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              Add Product
+            </Button>
+          </Space>
         </Col>
       </Row>
 
-      <Card>
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
-            <Input prefix={<SearchOutlined />} placeholder="Search products..." value={search}
-              onChange={e => setSearch(e.target.value)} allowClear />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select value={stockFilter} onChange={setStockFilter} placeholder="Stock filter" allowClear style={{ width: '100%' }}>
-              <Select.Option value="in">In Stock</Select.Option>
-              <Select.Option value="low">Low Stock</Select.Option>
-              <Select.Option value="out">Out of Stock</Select.Option>
-            </Select>
-          </Col>
-        </Row>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={8}>
+          <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
+            <Statistic
+              title={<Space size={4}><ShoppingOutlined style={{ color: '#6366f1' }} />Products</Space>}
+              value={products.length}
+              valueStyle={{ color: '#6366f1', fontSize: 22 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
+            <Statistic
+              title={<Space size={4}><BarChartOutlined style={{ color: '#52c41a' }} />Inventory Value</Space>}
+              value={totalValue} precision={2} prefix="₹"
+              valueStyle={{ color: '#52c41a', fontSize: 22 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
+            <Statistic
+              title={<Space size={4}><WarningOutlined style={{ color: lowStockCount > 0 ? '#faad14' : '#52c41a' }} />Low Stock Items</Space>}
+              value={lowStockCount}
+              valueStyle={{ color: lowStockCount > 0 ? '#faad14' : '#52c41a', fontSize: 22 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card styles={{ body: { padding: 0 } }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Input prefix={<SearchOutlined />} placeholder="Search products..." value={search}
+                onChange={e => setSearch(e.target.value)} allowClear />
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Select value={stockFilter} onChange={setStockFilter} placeholder="Stock filter" allowClear style={{ width: '100%' }}>
+                <Select.Option value="in">In Stock</Select.Option>
+                <Select.Option value="low">Low Stock</Select.Option>
+                <Select.Option value="out">Out of Stock</Select.Option>
+              </Select>
+            </Col>
+          </Row>
+        </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (t) => `${t} products` }}
-          scroll={{ x: 700 }} locale={{ emptyText: 'No products yet' }} />
+          scroll={{ x: 900 }} locale={{ emptyText: 'No products yet' }} />
       </Card>
 
       <Modal
@@ -155,6 +271,7 @@ export default function Products() {
         onOk={handleSave}
         okText={edit ? 'Update' : 'Save'}
         width={500}
+        destroyOnClose
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Product Name" rules={[{ required: true }]}>
@@ -170,7 +287,7 @@ export default function Products() {
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="price" label="Price (₹)" rules={[{ required: true }]}>
+              <Form.Item name="price" label="Selling Price (₹)" rules={[{ required: true }]}>
                 <InputNumber min={0} step={0.01} prefix="₹" style={{ width: '100%' }} />
               </Form.Item>
             </Col>
@@ -194,6 +311,46 @@ export default function Products() {
               </Form.Item>
             </Col>
           </Row>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={<Space><PlusCircleOutlined style={{ color: '#13c2c2' }} />Adjust Stock: {showStockAdjust?.name}</Space>}
+        open={!!showStockAdjust}
+        onCancel={() => setShowStockAdjust(null)}
+        onOk={handleStockAdjust}
+        okText="Adjust"
+        width={420}
+        destroyOnClose
+      >
+        <div style={{ marginBottom: 16, padding: 12, background: 'rgba(99,102,241,0.06)', borderRadius: 8 }}>
+          <Text type="secondary">Current Stock:</Text>
+          <Text strong style={{ fontSize: 18, marginLeft: 8 }}>
+            {Number(showStockAdjust?.stock) || 0} {showStockAdjust?.unit || 'pcs'}
+          </Text>
+          {Number(showStockAdjust?.minStock) > 0 && (
+            <Text type="secondary" style={{ marginLeft: 16 }}>
+              Min: {showStockAdjust?.minStock}
+            </Text>
+          )}
+        </div>
+        <Form form={adjustForm} layout="vertical">
+          <Form.Item name="adjustment" label="Adjustment (+ to add, - to remove)" rules={[{ required: true }]}>
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="e.g. 10 or -5"
+              onChange={(val) => {
+                const newVal = (Number(showStockAdjust?.stock) || 0) + (Number(val) || 0);
+                adjustForm.setFieldsValue({ newStock: Math.max(0, newVal) });
+              }}
+            />
+          </Form.Item>
+          <Form.Item name="newStock" label="New Stock (preview)">
+            <InputNumber disabled style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="reason" label="Reason">
+            <Input placeholder="e.g. Damaged, Return, Manual count" />
+          </Form.Item>
         </Form>
       </Modal>
     </div>

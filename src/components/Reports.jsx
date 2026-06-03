@@ -215,16 +215,16 @@ export default function Reports() {
 
       <Row gutter={[12, 12]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="Total Sales" value={data.summary.totalSales} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}><Statistic title="Total Sales" value={data.summary.totalSales} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="Total Expenses" value={data.summary.totalExpenses} precision={2} prefix="₹" valueStyle={{ color: '#faad14' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}><Statistic title="Total Expenses" value={data.summary.totalExpenses} precision={2} prefix="₹" valueStyle={{ color: '#faad14' }} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="Net Profit" value={data.summary.profit} precision={2} prefix="₹" valueStyle={{ color: data.summary.profit >= 0 ? '#52c41a' : '#ff4d4f' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}><Statistic title="Net Profit" value={data.summary.profit} precision={2} prefix="₹" valueStyle={{ color: data.summary.profit >= 0 ? '#52c41a' : '#ff4d4f' }} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="Invoices" value={data.summary.invoiceCount} prefix={<FileTextOutlined />} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #722ed1' } }}><Statistic title="Invoices" value={data.summary.invoiceCount} prefix={<FileTextOutlined />} valueStyle={{ color: '#722ed1' }} /></Card>
         </Col>
       </Row>
 
@@ -327,16 +327,16 @@ export default function Reports() {
 
       <Row gutter={[12, 12]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="Taxable Value" value={gstData.totalTaxable} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}><Statistic title="Taxable Value" value={gstData.totalTaxable} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="CGST" value={gstData.totalCgst} precision={2} prefix="₹" valueStyle={{ color: '#722ed1' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #722ed1' } }}><Statistic title="CGST" value={gstData.totalCgst} precision={2} prefix="₹" valueStyle={{ color: '#722ed1' }} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="SGST" value={gstData.totalSgst} precision={2} prefix="₹" valueStyle={{ color: '#13c2c2' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #13c2c2' } }}><Statistic title="SGST" value={gstData.totalSgst} precision={2} prefix="₹" valueStyle={{ color: '#13c2c2' }} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small"><Statistic title="Total GST" value={gstData.totalCgst + gstData.totalSgst} precision={2} prefix="₹" valueStyle={{ color: '#faad14' }} /></Card>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}><Statistic title="Total GST" value={gstData.totalCgst + gstData.totalSgst} precision={2} prefix="₹" valueStyle={{ color: '#faad14' }} /></Card>
         </Col>
       </Row>
 
@@ -406,7 +406,7 @@ export default function Reports() {
           <Text type="secondary">Sales, expense analytics &amp; GST filing data</Text>
         </Col>
       </Row>
-      <Card>
+      <Card styles={{ body: { padding: '16px 20px' } }}>
         <Tabs activeKey={tab} onChange={setTab} items={[
           { key: 'overview', label: <Space><RiseOutlined />Overview</Space>, children: overviewContent },
           { key: 'gst', label: <Space><AuditOutlined />GST Report</Space>, children: gstContent },

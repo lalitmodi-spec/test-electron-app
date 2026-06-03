@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   logo: { width: 45, height: 25, objectFit: 'contain' },
 });
 
-export default function MinimalTemplate({ invoice, settings }) {
+export default function MinimalTemplate({ invoice, settings, type = 'invoice' }) {
   const biz = settings || {};
   const inv = invoice || {};
   const items = inv.items || [];
@@ -69,7 +69,7 @@ export default function MinimalTemplate({ invoice, settings }) {
             </View>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.titleText}>INVOICE</Text>
+            <Text style={styles.titleText}>{type === 'quotation' ? 'QUOTATION' : 'INVOICE'}</Text>
             <Text style={styles.titleSub}>{inv.invoiceNo || 'INV-001'}</Text>
           </View>
         </View>

@@ -2,13 +2,44 @@ import Dexie from 'dexie';
 
 const db = new Dexie('BillingApp');
 
-db.version(6).stores({
+db.version(9).stores({
   customers: '++id, name, phone, gstin, email, createdAt',
   products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
   invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
   payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
   creditNotes: '++id, cnNo, invoiceId, customerId, customerName, date, status, createdAt',
   expenses: '++id, title, category, amount, date, items, createdAt',
+  purchases: '++id, productId, productName, vendorId, date, supplier, createdAt',
+  vendors: '++id, name, company, phone, email, gstin, address, createdAt',
+  quotations: '++id, quotationNo, customerId, customerName, date, status, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+  counters: '++id, key',
+});
+
+db.version(8).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
+  creditNotes: '++id, cnNo, invoiceId, customerId, customerName, date, status, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  purchases: '++id, productId, productName, vendorId, date, supplier, createdAt',
+  vendors: '++id, name, company, phone, email, gstin, address, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+  counters: '++id, key',
+});
+
+db.version(7).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
+  creditNotes: '++id, cnNo, invoiceId, customerId, customerName, date, status, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  purchases: '++id, productId, productName, vendorId, date, supplier, createdAt',
+  vendors: '++id, name, company, phone, email, gstin, address, createdAt',
   activity: '++id, type, message, timestamp',
   settings: '++id, key',
   counters: '++id, key',
@@ -253,6 +284,251 @@ export async function createCreditNote(data) {
 
 export async function getCreditNotesForInvoice(invoiceId) {
   return db.creditNotes.where('invoiceId').equals(invoiceId).reverse().toArray();
+}
+
+// ---- Quotation Management ----
+
+export async function getNextQuotationNo() {
+  const settings = await getSettings();
+  const prefix = 'QTN';
+  const sep = settings.invoiceSeparator || '-';
+  const pad = Number(settings.invoiceZeroPad) || 5;
+
+  let next = 1;
+  const existing = await db.counters.get('quotation_no');
+  if (existing) {
+    next = existing.value;
+  }
+
+  const num = String(next).padStart(pad, '0');
+  const quotationNo = `${prefix}${sep}${num}`;
+
+  await db.counters.put({ id: 'quotation_no', key: 'quotation_no', value: next + 1 });
+
+  return quotationNo;
+}
+
+export async function getQuotations() {
+  return db.quotations.reverse().toArray();
+}
+
+export async function getQuotation(id) {
+  return db.quotations.get(Number(id));
+}
+
+export async function addQuotation(data) {
+  const quotationNo = data.quotationNo || await getNextQuotationNo();
+  const q = {
+    quotationNo,
+    date: data.date || new Date().toISOString().split('T')[0],
+    validUntil: data.validUntil || '',
+    customerId: data.customerId || '',
+    customerName: data.customerName || '',
+    customerCompany: data.customerCompany || '',
+    customerGstin: data.customerGstin || '',
+    customerState: data.customerState || '',
+    customerAddress: data.customerAddress || '',
+    customerShippingAddress: data.customerShippingAddress || '',
+    customerStateCode: data.customerStateCode || '',
+    items: data.items || [],
+    subtotal: Number(data.subtotal) || 0,
+    cgst: Number(data.cgst) || 0,
+    sgst: Number(data.sgst) || 0,
+    discount: Number(data.discount) || 0,
+    grandTotal: Number(data.grandTotal) || 0,
+    notes: data.notes || '',
+    status: data.status || 'draft',
+    convertedToInvoiceId: data.convertedToInvoiceId || null,
+    createdAt: new Date().toISOString(),
+  };
+  const id = await db.quotations.add(q);
+  await logActivity('quotation', `Created quotation: ${quotationNo} - ₹${q.grandTotal}`);
+  return { ...q, id };
+}
+
+export async function updateQuotation(id, data) {
+  const q = await db.quotations.get(Number(id));
+  if (!q) throw new Error('Quotation not found');
+  const updateData = {
+    date: data.date || q.date,
+    validUntil: data.validUntil || q.validUntil,
+    customerId: data.customerId || q.customerId,
+    customerName: data.customerName || q.customerName,
+    customerCompany: data.customerCompany || q.customerCompany,
+    customerGstin: data.customerGstin || q.customerGstin,
+    customerState: data.customerState || q.customerState,
+    customerAddress: data.customerAddress || q.customerAddress,
+    customerShippingAddress: data.customerShippingAddress || q.customerShippingAddress,
+    customerStateCode: data.customerStateCode || q.customerStateCode,
+    items: data.items || q.items,
+    subtotal: Number(data.subtotal) || q.subtotal,
+    cgst: Number(data.cgst) || q.cgst,
+    sgst: Number(data.sgst) || q.sgst,
+    discount: Number(data.discount) || q.discount,
+    grandTotal: Number(data.grandTotal) || q.grandTotal,
+    notes: data.notes !== undefined ? data.notes : q.notes,
+    status: data.status || q.status,
+    convertedToInvoiceId: data.convertedToInvoiceId !== undefined ? data.convertedToInvoiceId : q.convertedToInvoiceId,
+  };
+  await db.quotations.update(Number(id), updateData);
+  await logActivity('quotation', `Updated quotation: ${q.quotationNo}`);
+}
+
+export async function deleteQuotation(id) {
+  const q = await db.quotations.get(Number(id));
+  if (!q) throw new Error('Quotation not found');
+  await db.quotations.delete(Number(id));
+  await logActivity('quotation', `Deleted quotation: ${q.quotationNo}`);
+}
+
+export async function convertQuotationToInvoice(quotationId) {
+  const q = await db.quotations.get(Number(quotationId));
+  if (!q) throw new Error('Quotation not found');
+  if (q.status === 'converted') throw new Error('Quotation already converted to invoice');
+
+  const invoiceNo = await getNextInvoiceNo();
+  const invoiceData = {
+    invoiceNo,
+    date: new Date().toISOString().split('T')[0],
+    customerId: q.customerId,
+    customerName: q.customerName,
+    customerCompany: q.customerCompany,
+    customerGstin: q.customerGstin,
+    customerState: q.customerState,
+    customerAddress: q.customerAddress,
+    customerShippingAddress: q.customerShippingAddress,
+    customerStateCode: q.customerStateCode,
+    items: q.items.map(({ key, ...rest }) => rest),
+    subtotal: q.subtotal,
+    cgst: q.cgst,
+    sgst: q.sgst,
+    discount: q.discount,
+    grandTotal: q.grandTotal,
+    notes: q.notes,
+    paymentMethod: '',
+    status: 'unpaid',
+    transporterName: '',
+    vehicleNumber: '',
+    dateOfSupply: '',
+    placeOfSupply: '',
+    modeOfTransport: '',
+    lrNumber: '',
+    createdAt: new Date().toISOString(),
+  };
+  const invoiceId = await db.invoices.add(invoiceData);
+  await db.quotations.update(Number(quotationId), { status: 'converted', convertedToInvoiceId: invoiceId });
+  await logActivity('quotation', `Quotation ${q.quotationNo} converted to invoice ${invoiceNo}`);
+  return { invoiceId, invoiceNo };
+}
+
+// ---- Purchase / Stock Management ----
+
+export async function recordPurchase({ productId, productName, quantity, unit, costPerUnit, totalCost, supplier, vendorId, date, note }) {
+  const purchase = {
+    productId: Number(productId),
+    productName: productName || '',
+    quantity: Number(quantity) || 0,
+    unit: unit || 'pcs',
+    costPerUnit: Number(costPerUnit) || 0,
+    totalCost: Number(totalCost) || 0,
+    supplier: supplier || '',
+    vendorId: vendorId ? Number(vendorId) : null,
+    date: date || new Date().toISOString().split('T')[0],
+    note: note || '',
+    createdAt: new Date().toISOString(),
+  };
+  const id = await db.purchases.add(purchase);
+
+  const product = await db.products.get(Number(productId));
+  if (product) {
+    const currentStock = Number(product.stock) || 0;
+    await db.products.update(Number(productId), {
+      stock: currentStock + Number(quantity),
+    });
+  }
+
+  await logActivity('purchase', `Purchased ${quantity} ${unit} of ${productName} for ₹${totalCost}`);
+  return id;
+}
+
+export async function updateProductStock(productId, newStock) {
+  await db.products.update(Number(productId), { stock: Math.max(0, Number(newStock)) });
+}
+
+export async function adjustProductStock(productId, adjustment, reason) {
+  const product = await db.products.get(Number(productId));
+  if (!product) throw new Error('Product not found');
+  const currentStock = Number(product.stock) || 0;
+  const newStock = Math.max(0, currentStock + Number(adjustment));
+  await db.products.update(Number(productId), { stock: newStock });
+  const action = adjustment > 0 ? 'added to' : 'removed from';
+  await logActivity('stock', `${Math.abs(adjustment)} ${product.unit || 'pcs'} ${action} ${product.name} (${reason || 'manual adjustment'})`);
+  return newStock;
+}
+
+export async function getPurchaseSummary(productId) {
+  const purchases = await db.purchases.where('productId').equals(Number(productId)).toArray();
+  const totalQty = purchases.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
+  const totalCost = purchases.reduce((s, p) => s + (Number(p.totalCost) || 0), 0);
+  return { totalQty, totalCost, count: purchases.length, purchases };
+}
+
+// ---- Vendor / Supplier Management ----
+
+export async function getVendors() {
+  return db.vendors.reverse().toArray();
+}
+
+export async function addVendor(data) {
+  const vendor = {
+    ...data,
+    createdAt: new Date().toISOString(),
+  };
+  const id = await db.vendors.add(vendor);
+  await logActivity('vendor', `Added vendor: ${data.name}`);
+  return id;
+}
+
+export async function updateVendor(id, data) {
+  await db.vendors.update(id, data);
+  await logActivity('vendor', `Updated vendor: ${data.name}`);
+}
+
+export async function deleteVendor(id, name) {
+  await db.vendors.delete(id);
+  await logActivity('vendor', `Deleted vendor: ${name}`);
+}
+
+export async function getVendorPurchaseSummary(vendorId) {
+  const purchases = await db.purchases.where('vendorId').equals(Number(vendorId)).toArray();
+  const totalCost = purchases.reduce((s, p) => s + (Number(p.totalCost) || 0), 0);
+  const totalQty = purchases.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
+  return { totalCost, totalQty, count: purchases.length, purchases };
+}
+
+// ---- Activity Log ----
+
+export async function getActivityLog({ type, search, limit = 50, offset = 0 } = {}) {
+  let collection = db.activity.orderBy('timestamp').reverse();
+  let results = await collection.toArray();
+  
+  if (type) {
+    results = results.filter(a => a.type === type);
+  }
+  if (search) {
+    const q = search.toLowerCase();
+    results = results.filter(a => a.message?.toLowerCase().includes(q));
+  }
+  
+  return {
+    items: results.slice(offset, offset + limit),
+    total: results.length,
+  };
+}
+
+export async function clearActivityLog() {
+  await db.activity.clear();
+  await logActivity('system', 'Activity log cleared');
 }
 
 export default db;

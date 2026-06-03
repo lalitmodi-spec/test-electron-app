@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   logo: { width: 50, height: 28, objectFit: 'contain' },
 });
 
-export default function ClassicTemplate({ invoice, settings }) {
+export default function ClassicTemplate({ invoice, settings, type = 'invoice' }) {
   const biz = settings || {};
   const inv = invoice || {};
   const items = inv.items || [];
@@ -76,8 +76,8 @@ export default function ClassicTemplate({ invoice, settings }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBar}>
-          <Text style={styles.titleText}>TAX INVOICE</Text>
-          <Text style={styles.titleSub}>GST Compliant Invoice</Text>
+          <Text style={styles.titleText}>{type === 'quotation' ? 'QUOTATION' : 'TAX INVOICE'}</Text>
+          <Text style={styles.titleSub}>{type === 'quotation' ? 'Price Estimate' : 'GST Compliant Invoice'}</Text>
         </View>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>

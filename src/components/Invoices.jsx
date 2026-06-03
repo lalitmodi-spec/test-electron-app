@@ -150,36 +150,38 @@ export default function Invoices() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
-          <Card size="small">
-            <Statistic title="Total Value" value={totalAmount} precision={2} prefix="₹" />
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
+            <Statistic title="Total Value" value={totalAmount} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card size="small">
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
             <Statistic title="Collected" value={paidAmount} precision={2} prefix="₹" valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card size="small">
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #ff4d4f' } }}>
             <Statistic title="Outstanding" value={totalAmount - paidAmount} precision={2} prefix="₹" valueStyle={{ color: '#ff4d4f' }} />
           </Card>
         </Col>
       </Row>
 
-      <Card>
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
-            <Input prefix={<SearchOutlined />} placeholder="Search by invoice or customer..."
-              value={search} onChange={e => setSearch(e.target.value)} allowClear />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select value={statusFilter} onChange={setStatusFilter} placeholder="Filter by status" allowClear style={{ width: '100%' }}>
-              <Select.Option value="paid">Paid</Select.Option>
-              <Select.Option value="unpaid">Unpaid</Select.Option>
-              <Select.Option value="partial">Partial</Select.Option>
-            </Select>
-          </Col>
-        </Row>
+      <Card styles={{ body: { padding: 0 } }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Input prefix={<SearchOutlined />} placeholder="Search by invoice or customer..."
+                value={search} onChange={e => setSearch(e.target.value)} allowClear />
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Select value={statusFilter} onChange={setStatusFilter} placeholder="Filter by status" allowClear style={{ width: '100%' }}>
+                <Select.Option value="paid">Paid</Select.Option>
+                <Select.Option value="unpaid">Unpaid</Select.Option>
+                <Select.Option value="partial">Partial</Select.Option>
+              </Select>
+            </Col>
+          </Row>
+        </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (t) => `${t} invoices` }}

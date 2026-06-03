@@ -7,7 +7,12 @@ import InvoiceForm from './components/InvoiceForm';
 import Payments from './components/Payments';
 import Customers from './components/Customers';
 import Expenses from './components/Expenses';
+import Purchases from './components/Purchases';
 import Products from './components/Products';
+import Vendors from './components/Vendors';
+import Quotations from './components/Quotations';
+import QuotationForm from './components/QuotationForm';
+import ActivityLog from './components/ActivityLog';
 import Settings from './components/Settings';
 import Reports from './components/Reports';
 import CreditNotes from './components/CreditNotes';
@@ -41,7 +46,13 @@ export default function App() {
               <Route path="/payments" element={<Payments />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/expenses" element={<Expenses />} />
+              <Route path="/purchases" element={<Purchases />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/vendors" element={<Vendors />} />
+              <Route path="/quotations" element={<Quotations />} />
+              <Route path="/quotation/new" element={<QuotationForm />} />
+              <Route path="/quotation/edit/:id" element={<QuotationForm />} />
+              <Route path="/activity" element={<ActivityLog />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/credit-notes" element={<CreditNotes />} />
