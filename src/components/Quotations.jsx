@@ -23,6 +23,8 @@ const statusColors = {
   converted: 'purple',
 };
 
+const PDF_TEMPLATES = ['professional', 'classic', 'minimal'];
+
 export default function Quotations() {
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -117,14 +119,15 @@ export default function Quotations() {
           <Tooltip title={t('common.view')}><Button size="small" icon={<EyeOutlined />} onClick={() => openView(r)} /></Tooltip>
           <Tooltip title={t('common.edit')}><Button size="small" icon={<EditOutlined />}
             onClick={() => navigate(`/quotation/edit/${r.id}`)} /></Tooltip>
-          <Tooltip title={t('common.pdf')}>
-            <Select size="small" style={{ width: 85 }} value="professional" onChange={(val) => handlePdf(r, val)}
-              onClick={(e) => e.stopPropagation()}>
-              <Select.Option value="professional">{t('pdfTemplates.professional')}</Select.Option>
-              <Select.Option value="classic">{t('pdfTemplates.classic')}</Select.Option>
-              <Select.Option value="minimal">{t('pdfTemplates.minimal')}</Select.Option>
-            </Select>
-          </Tooltip>
+          {PDF_TEMPLATES.map(tpl => (
+            <Tooltip key={tpl} title={t(`pdfTemplates.${tpl}`)}>
+              <Button size="small" icon={<FilePdfOutlined />}
+                style={{ fontSize: 11, padding: '0 6px' }}
+                onClick={() => handlePdf(r, tpl)}>
+                {tpl.charAt(0).toUpperCase() + tpl.slice(1, 4)}
+              </Button>
+            </Tooltip>
+          ))}
           {r.status !== 'converted' && (
             <Tooltip title={t('quotation.convertToInvoice')}>
               <Button size="small" icon={<SwapOutlined />} style={{ color: '#52c41a' }}
@@ -213,12 +216,12 @@ export default function Quotations() {
         width={520}
         extra={
           <Space>
-            <Select defaultValue="professional" size="small" style={{ width: 120 }}
-              onChange={(val) => { handlePdf(view, val); setView(null); }}>
-              <Select.Option value="professional">{`${t('common.pdf')} (${t('pdfTemplates.professional')})`}</Select.Option>
-              <Select.Option value="classic">{`${t('common.pdf')} (${t('pdfTemplates.classic')})`}</Select.Option>
-              <Select.Option value="minimal">{`${t('common.pdf')} (${t('pdfTemplates.minimal')})`}</Select.Option>
-            </Select>
+            {PDF_TEMPLATES.map(tpl => (
+              <Button key={tpl} size="small" icon={<FilePdfOutlined />}
+                onClick={() => { handlePdf(view, tpl); setView(null); }}>
+                {t(`pdfTemplates.${tpl}`)}
+              </Button>
+            ))}
             {view?.status !== 'converted' && (
               <Button icon={<SwapOutlined />} style={{ color: '#52c41a' }}
                 onClick={() => { handleConvert(view); setView(null); }}>

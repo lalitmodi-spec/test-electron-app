@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Card, Button, Input, Select, Space, Tag, Drawer, Typography, Row, Col,
-  Statistic, Popconfirm, message, Tooltip, Descriptions, Divider, Dropdown
+  Statistic, Popconfirm, message, Tooltip, Descriptions, Divider
 } from 'antd';
 import {
   PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined,
-  SearchOutlined, DollarOutlined, MailOutlined, BellOutlined, SwapOutlined, DownOutlined,
+  SearchOutlined, DollarOutlined, MailOutlined, BellOutlined, SwapOutlined,
   FileTextOutlined
 } from '@ant-design/icons';
 import db, { logActivity, getPaymentSummary, getSettings } from '../db';
@@ -51,17 +51,6 @@ export default function Invoices() {
   async function handlePdf(inv, template) {
     await generateInvoicePDF(inv, template);
     message.success(t('msg.pdfGenerated'));
-  }
-
-  function getPdfMenuItems(inv, onDone) {
-    return PDF_TEMPLATES.map(key => ({
-      key,
-      label: t(`pdfTemplates.${key}`),
-      onClick: () => {
-        handlePdf(inv, key);
-        if (onDone) onDone();
-      },
-    }));
   }
 
   async function handleReminder(inv) {
@@ -171,11 +160,15 @@ export default function Invoices() {
         <Space>
           <Tooltip title={t('common.view')}><Button size="small" icon={<EyeOutlined />} onClick={() => openView(r)} /></Tooltip>
           <Tooltip title={t('common.edit')}><Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/invoice/edit/${r.id}`)} /></Tooltip>
-          <Dropdown menu={{ items: getPdfMenuItems(r) }} trigger={['click']}>
-            <Button size="small" icon={<FilePdfOutlined />}>
-              PDF <DownOutlined />
-            </Button>
-          </Dropdown>
+          {PDF_TEMPLATES.map(tpl => (
+            <Tooltip key={tpl} title={t(`pdfTemplates.${tpl}`)}>
+              <Button size="small" icon={<FilePdfOutlined />}
+                style={{ fontSize: 11, padding: '0 6px' }}
+                onClick={() => handlePdf(r, tpl)}>
+                {tpl.charAt(0).toUpperCase() + tpl.slice(1, 4)}
+              </Button>
+            </Tooltip>
+          ))}
           {r.status !== 'paid' && (
             <Tooltip title={t('invoice.sendReminder')}>
               <Button size="small" icon={<BellOutlined />}
@@ -294,11 +287,12 @@ export default function Invoices() {
         placement="right"
         extra={
           <Space>
-            <Dropdown menu={{ items: getPdfMenuItems(view, () => setView(null)) }} trigger={['click']}>
-              <Button size="small" icon={<FilePdfOutlined />}>
-                PDF <DownOutlined />
+            {PDF_TEMPLATES.map(tpl => (
+              <Button key={tpl} size="small" icon={<FilePdfOutlined />}
+                onClick={() => { handlePdf(view, tpl); setView(null); }}>
+                {t(`pdfTemplates.${tpl}`)}
               </Button>
-            </Dropdown>
+            ))}
             <Button size="small" icon={<MailOutlined />} onClick={() => { handleEmail(view); setView(null); }} />
             <Button size="small" type="primary" icon={<EditOutlined />}
               onClick={() => { navigate(`/invoice/edit/${view.id}`); setView(null); }}>
