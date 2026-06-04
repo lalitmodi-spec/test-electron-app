@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeImage } from "electron";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -6,7 +6,48 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
 
-Menu.setApplicationMenu(null);
+function buildAppMenu(win) {
+  const template = [
+    {
+      label: "File",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { role: "zoomIn", accelerator: "CmdOrCtrl+=" },
+        { role: "zoomOut" },
+        { role: "resetZoom" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
+    },
+    {
+      label: "Developer",
+      submenu: [
+        {
+          label: "Toggle DevTools",
+          accelerator: isDev ? "F12" : "CmdOrCtrl+Shift+I",
+          click: () => win?.webContents.toggleDevTools(),
+        },
+        {
+          label: "Inspect Element",
+          accelerator: "CmdOrCtrl+Shift+C",
+          click: () => { win?.webContents.toggleDevTools(); win?.webContents.inspectElement(0, 0); },
+        },
+        { type: "separator" },
+        { role: "reload" },
+        { role: "forceReload" },
+      ],
+    },
+  ];
+  return Menu.buildFromTemplate(template);
+}
 
 function getLogoDir() {
   const dir = path.join(app.getPath("userData"), "logos");
@@ -27,6 +68,25 @@ function createWindow() {
         },
         frame: false,
         show: false,
+    });
+
+    const menu = buildAppMenu(win);
+    Menu.setApplicationMenu(menu);
+
+    win.webContents.on("context-menu", (e, params) => {
+      const ctxMenu = Menu.buildFromTemplate([
+        { label: "Back", accelerator: "Alt+Left", click: () => win?.webContents.goBack() },
+        { label: "Forward", accelerator: "Alt+Right", click: () => win?.webContents.goForward() },
+        { type: "separator" },
+        { label: "Reload", accelerator: "CmdOrCtrl+R", click: () => win?.webContents.reload() },
+        { type: "separator" },
+        { label: "Cut", accelerator: "CmdOrCtrl+X", role: "cut" },
+        { label: "Copy", accelerator: "CmdOrCtrl+C", role: "copy" },
+        { label: "Paste", accelerator: "CmdOrCtrl+V", role: "paste" },
+        { type: "separator" },
+        { label: "Inspect Element", click: () => { win?.webContents.inspectElement(params.x, params.y); } },
+      ]);
+      ctxMenu.popup();
     });
 
     win.once("ready-to-show", () => win.show());

@@ -215,285 +215,405 @@ export default function Dashboard() {
     },
   ];
 
-  return (
-    <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('dashboard.title')}</Title>
-          <Text type="secondary">{t('dashboard.subtitle')}</Text>
-        </Col>
-        <Col>
-          <Space>
-            <Segmented
-              value={period}
-              onChange={setPeriod}
-              options={[
-                { label: t('dashboard.today'), value: 'today' },
-                { label: t('dashboard.week'), value: 'week' },
-                { label: t('dashboard.month'), value: 'month' },
-                { label: t('dashboard.year'), value: 'year' },
-                { label: t('dashboard.all'), value: 'all' },
-              ]}
-            />
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/invoice/new')}>
-              {t('invoice.newTitle')}
-            </Button>
-          </Space>
-        </Col>
-      </Row>
+  const cardStyle = (color) => ({
+    borderLeft: `4px solid ${color}`,
+    borderRadius: 12,
+    height: '100%',
+  });
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
-            <Statistic
-              title={<Space size={4}><DollarOutlined style={{ color: '#6366f1' }} />{t('dashboard.revenue')}</Space>}
-              value={stats.revenue} prefix="₹" precision={2}
-              valueStyle={{ color: '#6366f1', fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, display: 'flex', gap: 16, fontSize: 12 }}>
-              <span>{t('dashboard.collected')}: <Text style={{ color: '#52c41a' }}>₹{stats.paid.toFixed(2)}</Text></span>
-              <span>{t('dashboard.pending')}: <Text style={{ color: '#ff4d4f' }}>₹{stats.unpaid.toFixed(2)}</Text></span>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
-            <Statistic
-              title={<Space size={4}><RiseOutlined style={{ color: '#52c41a' }} />{t('dashboard.sales')}</Space>}
-              value={stats.curSales} prefix="₹" precision={2}
-              valueStyle={{ color: '#52c41a', fontSize: 20 }}
-            />
-            {prevPeriodSales > 0 && (
-              <div style={{ marginTop: 6, fontSize: 12 }}>
-                {stats.curSales >= prevPeriodSales ? (
-                <Text style={{ color: '#52c41a' }}><ArrowUpOutlined /> +{((stats.curSales - prevPeriodSales) / prevPeriodSales * 100).toFixed(1)}% {t('dashboard.vsPrevious')}</Text>
-              ) : (
-                <Text style={{ color: '#ff4d4f' }}><ArrowDownOutlined /> {((stats.curSales - prevPeriodSales) / prevPeriodSales * 100).toFixed(1)}% {t('dashboard.vsPrevious')}</Text>
-                )}
+  const renderStatFooter = (children) => (
+    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+      {children}
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '2px 0' }}>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <BarChartOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('dashboard.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{t('dashboard.subtitle')}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space wrap size={8}>
+              <Segmented
+                value={period}
+                onChange={setPeriod}
+                options={[
+                  { label: t('dashboard.today'), value: 'today' },
+                  { label: t('dashboard.week'), value: 'week' },
+                  { label: t('dashboard.month'), value: 'month' },
+                  { label: t('dashboard.year'), value: 'year' },
+                  { label: t('dashboard.all'), value: 'all' },
+                ]}
+              />
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/invoice/new')}>
+                {t('invoice.newTitle')}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#6366f1')}>
+            <div className="stat-label"><DollarOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('dashboard.revenue')}</div>
+            <div className="stat-value" style={{ color: '#6366f1' }}>₹{stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {renderStatFooter(
+              <>
+                <span style={{ color: '#52c41a' }}>● {t('dashboard.collected')}: ₹{stats.paid.toFixed(2)}</span>
+                <span style={{ color: '#ff4d4f' }}>● {t('dashboard.pending')}: ₹{stats.unpaid.toFixed(2)}</span>
+              </>
             )}
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}>
-            <Statistic
-              title={<Space size={4}><ClockCircleOutlined style={{ color: '#faad14' }} />{t('dashboard.pendingOverdue')}</Space>}
-              value={stats.pendingCount} suffix={t('common.pending')}
-              valueStyle={{ color: '#faad14', fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, fontSize: 12 }}>
-              {stats.overdueCount > 0 ? (
-                <Text style={{ color: '#ff4d4f' }}><FireOutlined /> {stats.overdueCount} {t('common.overdue')} (₹{stats.overdueAmount.toFixed(2)})</Text>
-              ) : (
-                <Text style={{ color: '#52c41a' }}>{t('dashboard.noOverdue')}</Text>
-              )}
-            </div>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#52c41a')}>
+            <div className="stat-label"><RiseOutlined style={{ color: '#52c41a', marginRight: 4 }} />{t('dashboard.sales')}</div>
+            <div className="stat-value" style={{ color: '#52c41a' }}>₹{stats.curSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {renderStatFooter(
+              prevPeriodSales > 0 ? (
+                stats.curSales >= prevPeriodSales ? (
+                  <span className="trend-up"><ArrowUpOutlined /> +{((stats.curSales - prevPeriodSales) / prevPeriodSales * 100).toFixed(1)}% {t('dashboard.vsPrevious')}</span>
+                ) : (
+                  <span className="trend-down"><ArrowDownOutlined /> {((stats.curSales - prevPeriodSales) / prevPeriodSales * 100).toFixed(1)}% {t('dashboard.vsPrevious')}</span>
+                )
+              ) : <span style={{ color: 'var(--text-secondary)' }}>{t('msg.noData')}</span>
+            )}
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #722ed1' } }}>
-            <Statistic
-              title={<Space size={4}><BarChartOutlined style={{ color: '#722ed1' }} />{t('dashboard.profit')}</Space>}
-              value={stats.curProfit} prefix="₹" precision={2}
-              valueStyle={{ color: stats.curProfit >= 0 ? '#52c41a' : '#ff4d4f', fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, fontSize: 12 }}>
-              <span>{t('dashboard.expenses')}: <Text style={{ color: '#faad14' }}>₹{stats.curExp.toFixed(2)}</Text></span>
-              <span style={{ marginLeft: 12 }}>{t('dashboard.invoices')}: <Text>{filteredInvoices.length}</Text></span>
-            </div>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#faad14')}>
+            <div className="stat-label"><ClockCircleOutlined style={{ color: '#faad14', marginRight: 4 }} />{t('dashboard.pendingOverdue')}</div>
+            <div className="stat-value" style={{ color: '#faad14' }}>{stats.pendingCount} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-secondary)' }}>{t('common.pending')}</span></div>
+            {renderStatFooter(
+              stats.overdueCount > 0 ? (
+                <span style={{ color: '#ff4d4f' }}><FireOutlined /> {stats.overdueCount} {t('common.overdue')} (₹{stats.overdueAmount.toFixed(2)})</span>
+              ) : (
+                <span style={{ color: '#52c41a' }}>✓ {t('dashboard.noOverdue')}</span>
+              )
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#722ed1')}>
+            <div className="stat-label"><BarChartOutlined style={{ color: '#722ed1', marginRight: 4 }} />{t('dashboard.profit')}</div>
+            <div className="stat-value" style={{ color: stats.curProfit >= 0 ? '#52c41a' : '#ff4d4f' }}>₹{stats.curProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {renderStatFooter(
+              <>
+                <span style={{ color: '#faad14' }}>{t('dashboard.expenses')}: ₹{stats.curExp.toFixed(2)}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{t('dashboard.invoices')}: {filteredInvoices.length}</span>
+              </>
+            )}
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #13c2c2' } }}>
-            <Statistic
-              title={<Space size={4}><ShoppingCartOutlined style={{ color: '#13c2c2' }} />{t('dashboard.totalPurchases')}</Space>}
-              value={purchaseTotal} precision={2} prefix="₹"
-              valueStyle={{ color: '#13c2c2', fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, fontSize: 12 }}>
-              <span>{purchaseQty} {t('dashboard.unitsPurchased')}</span>
-              <Button type="link" size="small" style={{ padding: 0, marginLeft: 8 }} onClick={() => navigate('/purchases')}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#13c2c2')}>
+            <div className="stat-label"><ShoppingCartOutlined style={{ color: '#13c2c2', marginRight: 4 }} />{t('dashboard.totalPurchases')}</div>
+            <div className="stat-value" style={{ color: '#13c2c2' }}>₹{purchaseTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {renderStatFooter(
+              <>
+                <span style={{ color: 'var(--text-secondary)' }}>{purchaseQty} {t('dashboard.unitsPurchased')}</span>
+                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate('/purchases')}>
+                  {t('common.view')} <ArrowRightOutlined />
+                </Button>
+              </>
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#eb2f96')}>
+            <div className="stat-label"><ShoppingOutlined style={{ color: '#eb2f96', marginRight: 4 }} />{t('dashboard.inventoryValue')}</div>
+            <div className="stat-value" style={{ color: '#eb2f96' }}>₹{stockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {renderStatFooter(
+              <>
+                <span style={{ color: 'var(--text-secondary)' }}>{products.length} {t('dashboard.products')}</span>
+                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate('/products')}>
+                  {t('common.edit')} <ArrowRightOutlined />
+                </Button>
+              </>
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#52c41a')}>
+            <div className="stat-label"><TeamOutlined style={{ color: '#52c41a', marginRight: 4 }} />{t('dashboard.customers')}</div>
+            <div className="stat-value" style={{ color: '#52c41a' }}>{customers.length}</div>
+            {renderStatFooter(
+              <span style={{ color: 'var(--text-secondary)' }}>{stats.invoices} {t('dashboard.totalInvoices')}</span>
+            )}
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#fa8c16')}>
+            <div className="stat-label"><WalletOutlined style={{ color: '#fa8c16', marginRight: 4 }} />{t('dashboard.totalExpenses')}</div>
+            <div className="stat-value" style={{ color: '#fa8c16' }}>₹{stats.expenseTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {renderStatFooter(
+              <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate('/expenses')}>
                 {t('common.view')} <ArrowRightOutlined />
               </Button>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #eb2f96' } }}>
-            <Statistic
-              title={<Space size={4}><ShoppingOutlined style={{ color: '#eb2f96' }} />{t('dashboard.inventoryValue')}</Space>}
-              value={stockValue} precision={2} prefix="₹"
-              valueStyle={{ color: '#eb2f96', fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, fontSize: 12 }}>
-              <span>{products.length} {t('dashboard.products')}</span>
-              <Button type="link" size="small" style={{ padding: 0, marginLeft: 8 }} onClick={() => navigate('/products')}>
-                {t('common.edit')} <ArrowRightOutlined />
-              </Button>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
-            <Statistic
-              title={<Space size={4}><TeamOutlined style={{ color: '#52c41a' }} />{t('dashboard.customers')}</Space>}
-              value={customers.length}
-              valueStyle={{ fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, fontSize: 12 }}>
-              <span>{stats.invoices} {t('dashboard.totalInvoices')}</span>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #fa8c16' } }}>
-            <Statistic
-              title={<Space size={4}><WalletOutlined style={{ color: '#fa8c16' }} />{t('dashboard.totalExpenses')}</Space>}
-              value={stats.expenseTotal} precision={2} prefix="₹"
-              valueStyle={{ color: '#fa8c16', fontSize: 20 }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #eb2f96' } }}>
-            <Statistic
-              title={<Space size={4}><TeamOutlined style={{ color: '#eb2f96' }} />{t('dashboard.vendors')}</Space>}
-              value={vendors.length}
-              valueStyle={{ color: '#eb2f96', fontSize: 20 }}
-            />
-            <div style={{ marginTop: 6, fontSize: 12 }}>
-              <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate('/vendors')}>
-                {t('common.edit')} <ArrowRightOutlined />
-              </Button>
-            </div>
+            )}
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
         <Col xs={24} lg={16}>
           <Card
+            className="chart-card"
             size="small"
-            styles={{ body: { padding: '16px 20px' } }}
-            title={<Space><BarChartOutlined style={{ color: '#6366f1' }} />{t('dashboard.salesVsExpenses')}</Space>}
+            styles={{ body: { padding: '20px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                  <BarChartOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('dashboard.salesVsExpenses')}</span>
+              </Space>
+            }
             extra={
               <Space size={4}>
-                <CalendarOutlined /><Text type="secondary" style={{ fontSize: 11 }}>{range.start} to {range.end}</Text>
+                <CalendarOutlined style={{ color: 'var(--text-secondary)' }} />
+                <Text type="secondary" style={{ fontSize: 11 }}>{range.start} - {range.end}</Text>
               </Space>
             }
           >
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <ReTooltip />
-                <Legend />
-                <Bar dataKey="sales" fill="#6366f1" radius={[4, 4, 0, 0]} name={t('common.sales')} />
-                <Bar dataKey="expenses" fill="#faad14" radius={[4, 4, 0, 0]} name={t('common.expenses')} />
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData} barGap={4} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <ReTooltip
+                  contentStyle={{
+                    borderRadius: 8,
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    background: 'var(--bg-card)',
+                  }}
+                />
+                <Legend iconType="circle" />
+                <Bar dataKey="sales" fill="#6366f1" radius={[6, 6, 0, 0]} name={t('common.sales')} maxBarSize={40} />
+                <Bar dataKey="expenses" fill="#faad14" radius={[6, 6, 0, 0]} name={t('common.expenses')} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <Card size="small" styles={{ body: { padding: '16px 20px' } }} title={<Space><PieChartOutlined style={{ color: '#52c41a' }} />{t('dashboard.payments')}</Space>}>
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '16px 16px', display: 'flex', flexDirection: 'column', height: 'calc(100% - 38px)' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)', width: 28, height: 28, borderRadius: 6 }}>
+                  <PieChartOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('dashboard.payments')}</span>
+              </Space>
+            }
+          >
             {filteredInvoices.length === 0 ? (
-              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 20 }}>{t('msg.noData')}</Text>
+              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '20px 0' }}>{t('msg.noData')}</Text>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={paymentPie} cx="50%" cy="50%" innerRadius={45} outerRadius={80} dataKey="value" paddingAngle={3}>
-                    {paymentPie.map((e, i) => <Cell key={e.name} fill={PIE_COLORS[i % 3]} />)}
-                  </Pie>
-                  <ReTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Pie data={paymentPie} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={4}>
+                        {paymentPie.map((e, i) => <Cell key={e.name} fill={PIE_COLORS[i % 3]} />)}
+                      </Pie>
+                      <ReTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, fontSize: 11, marginTop: 8, flexWrap: 'wrap' }}>
+                  {paymentPie.map((e, i) => e.value > 0 && (
+                    <span key={e.name}>
+                      <span style={{ color: PIE_COLORS[i], fontWeight: 700 }}>●</span> {e.name}: {e.value}
+                    </span>
+                  ))}
+                </div>
+              </>
             )}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 11, marginTop: 4 }}>
-              {paymentPie.map((e, i) => e.value > 0 && (
-                <span key={e.name}><span style={{ color: PIE_COLORS[i], fontWeight: 700 }}>\u25CF</span> {e.name}: {e.value}</span>
-              ))}
-            </div>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
-          <Card size="small" styles={{ body: { padding: '16px 20px' } }} title={<Space><TeamOutlined style={{ color: '#722ed1' }} />{t('dashboard.topCustomers')}</Space>}>
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '16px 16px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #722ed1, #9254de)', width: 28, height: 28, borderRadius: 6 }}>
+                  <TeamOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('dashboard.topCustomers')}</span>
+              </Space>
+            }
+          >
             {stats.topCustomers?.length > 0 ? (
               <div style={{ fontSize: 12 }}>
                 {stats.topCustomers.map((c, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < stats.topCustomers.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
-                    <Text ellipsis style={{ maxWidth: 100 }}>{c.name === 'Walk-in' ? t('msg.walkIn') : c.name}</Text>
-                    <Text strong>₹{c.amount.toFixed(0)}</Text>
+                  <div key={i} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '7px 0',
+                    borderBottom: i < stats.topCustomers.length - 1 ? '1px solid var(--border-color)' : 'none'
+                  }}>
+                    <Space size={8}>
+                      <span style={{
+                        width: 22, height: 22, borderRadius: 6,
+                        background: i === 0 ? '#faad14' : i === 1 ? '#e8e8e8' : i === 2 ? '#cd7f32' : 'var(--border-color)',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700, color: i <= 2 ? '#fff' : 'var(--text-secondary)'
+                      }}>{i + 1}</span>
+                      <Text ellipsis style={{ maxWidth: 80 }}>{c.name === 'Walk-in' ? t('msg.walkIn') : c.name}</Text>
+                    </Space>
+                    <Text strong style={{ fontSize: 13 }}>₹{c.amount.toFixed(0)}</Text>
                   </div>
                 ))}
               </div>
             ) : (
-              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 20 }}>{t('dashboard.noSalesYet')}</Text>
+              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '30px 0' }}>{t('dashboard.noSalesYet')}</Text>
             )}
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
         <Col xs={24} lg={12}>
           <Card
+            className="chart-card"
             size="small"
             styles={{ body: { padding: 0 } }}
-            title={<Space><FileTextOutlined style={{ color: '#6366f1' }} />{t('dashboard.recentInvoices')}</Space>}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                  <FileTextOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('dashboard.recentInvoices')}</span>
+              </Space>
+            }
             extra={<Button type="link" size="small" onClick={() => navigate('/invoices')}>{t('dashboard.viewAll')} <ArrowRightOutlined /></Button>}
           >
-            <Table dataSource={filteredInvoices.slice(0, 5)} columns={invoiceColumns} rowKey="id"
-              pagination={false} size="small" locale={{ emptyText: t('dashboard.noInvoicesPeriod') }} />
+            <Table
+              dataSource={filteredInvoices.slice(0, 5)}
+              columns={invoiceColumns}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              locale={{ emptyText: t('dashboard.noInvoicesPeriod') }}
+              style={{ borderRadius: '0 0 12px 12px', overflow: 'hidden' }}
+            />
           </Card>
         </Col>
         <Col xs={24} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px' } }} title={t('dashboard.businessSnapshot')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.totalInvoices')}</Text><Text strong>{stats.invoices}</Text></Row>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.totalCustomers')}</Text><Text strong>{stats.customers}</Text></Row>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.totalVendors')}</Text><Text strong>{vendors.length}</Text></Row>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.totalExpenses')}</Text><Text strong style={{ color: '#faad14' }}>₹{stats.expenseTotal.toFixed(2)}</Text></Row>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.todaySales')}</Text><Text strong style={{ color: '#52c41a' }}>₹{stats.todaySales.toFixed(2)} ({stats.todayCount} {t('invoice.title').toLowerCase()})</Text></Row>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.products')}</Text><Text strong>{products.length}</Text></Row>
-              <Row justify="space-between"><Text type="secondary">{t('dashboard.purchases')}</Text><Text strong>{purchases.length}</Text></Row>
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '18px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #13c2c2, #36cfc9)', width: 28, height: 28, borderRadius: 6 }}>
+                  <CalendarOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('dashboard.businessSnapshot')}</span>
+              </Space>
+            }
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { label: t('dashboard.totalInvoices'), value: stats.invoices, color: null },
+                { label: t('dashboard.totalCustomers'), value: stats.customers, color: null },
+                { label: t('dashboard.totalVendors'), value: vendors.length, color: null },
+                { label: t('dashboard.totalExpenses'), value: `₹${stats.expenseTotal.toFixed(2)}`, color: '#faad14' },
+                { label: t('dashboard.todaySales'), value: `₹${stats.todaySales.toFixed(2)} (${stats.todayCount})`, color: '#52c41a' },
+                { label: t('dashboard.products'), value: products.length, color: null },
+                { label: t('dashboard.purchases'), value: purchases.length, color: null },
+              ].map((item, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '5px 0',
+                  borderBottom: i < 6 ? '1px solid var(--border-color)' : 'none'
+                }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{item.label}</Text>
+                  <Text strong style={{ fontSize: 13, color: item.color || 'var(--text-primary)' }}>{item.value}</Text>
+                </div>
+              ))}
             </div>
           </Card>
         </Col>
         <Col xs={24} lg={6}>
           {lowStock.length > 0 ? (
             <Alert
-              type="warning" showIcon icon={<WarningOutlined />}
-              message={<Text strong>{t('dashboard.lowStockAlert')} ({lowStock.length})</Text>}
+              type="warning"
+              showIcon
+              icon={<WarningOutlined />}
+              message={
+                <Space>
+                  <span style={{ fontWeight: 600 }}>{t('dashboard.lowStockAlert')}</span>
+                  <Tag color="warning" style={{ borderRadius: 10 }}>{lowStock.length}</Tag>
+                </Space>
+              }
               description={
-                <div>
+                <div style={{ marginTop: 4 }}>
                   {lowStock.slice(0, 4).map(p => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
-                      <span>{p.name}</span>
-                      <Text type="danger">{t('product.stock')}: {Number(p.stock) || 0} / {t('product.minStock')}: {Number(p.minStock) || 0}</Text>
+                    <div key={p.id} style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      padding: '6px 0', fontSize: 12,
+                      borderBottom: '1px solid rgba(250,173,20,0.15)'
+                    }}>
+                      <span style={{ fontWeight: 500 }}>{p.name}</span>
+                      <Text type="danger">
+                        {t('product.stock')}: {Number(p.stock) || 0} / {t('product.minStock')}: {Number(p.minStock) || 0}
+                      </Text>
                     </div>
                   ))}
                   {lowStock.length > 4 && (
-                    <Button type="link" size="small" onClick={() => navigate('/products')}>{t('dashboard.viewAll')} {lowStock.length}</Button>
+                    <Button type="link" size="small" style={{ padding: '4px 0' }} onClick={() => navigate('/products')}>
+                      {t('dashboard.viewAll')} {lowStock.length}
+                    </Button>
                   )}
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: 10 }}>
                     <Button size="small" icon={<ShoppingCartOutlined />} onClick={() => navigate('/purchases')}>
                       {t('purchase.recordPurchase')}
                     </Button>
                   </div>
                 </div>
               }
-              style={{ borderRadius: 10 }}
+              style={{ borderRadius: 12, border: 'none' }}
             />
           ) : products.length > 0 ? (
-            <Card size="small" styles={{ body: { padding: '16px 20px' } }} title={<Space><ShoppingOutlined style={{ color: '#52c41a' }} />{t('dashboard.stockStatus')}</Space>}>
+            <Card
+              className="chart-card"
+              size="small"
+              styles={{ body: { padding: '18px 20px' } }}
+              title={
+                <Space>
+                  <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)', width: 28, height: 28, borderRadius: 6 }}>
+                    <ShoppingOutlined style={{ color: '#fff', fontSize: 14 }} />
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{t('dashboard.stockStatus')}</span>
+                </Space>
+              }
+            >
               {(() => {
                 const inStock = products.filter(p => (Number(p.stock) || 0) > 0).length;
                 const outOfStock = products.filter(p => (Number(p.stock) || 0) === 0).length;
+                const pct = products.length > 0 ? Math.round((inStock / products.length) * 100) : 0;
                 return (
-                  <div style={{ fontSize: 13 }}>
+                  <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                       <Text type="secondary">{t('product.inStock')}</Text>
                       <Text strong style={{ color: '#52c41a' }}>{inStock}</Text>
@@ -502,8 +622,13 @@ export default function Dashboard() {
                       <Text type="secondary">{t('product.outOfStock')}</Text>
                       <Text strong style={{ color: outOfStock > 0 ? '#ff4d4f' : '#52c41a' }}>{outOfStock}</Text>
                     </div>
-                    <Progress percent={products.length > 0 ? Math.round((inStock / products.length) * 100) : 0}
-                      size="small" strokeColor="#52c41a" trailColor="rgba(255,255,255,0.08)" />
+                    <Progress
+                      percent={pct}
+                      size="small"
+                      strokeColor="#52c41a"
+                      trailColor="rgba(255,255,255,0.08)"
+                      style={{ margin: '8px 0 4px' }}
+                    />
                     <Button type="link" size="small" style={{ padding: 0, marginTop: 4 }} onClick={() => navigate('/products')}>
                       {t('product.editTitle')} <ArrowRightOutlined />
                     </Button>
@@ -512,18 +637,33 @@ export default function Dashboard() {
               })()}
             </Card>
           ) : (
-            <Card size="small" styles={{ body: { padding: '16px 20px' } }}
-              title={<Space><HistoryOutlined style={{ color: '#6366f1' }} />{t('dashboard.recentActivity')}</Space>}
-              extra={<Button type="link" size="small" onClick={() => navigate('/activity')}>{t('dashboard.viewAll')} <ArrowRightOutlined /></Button>}>
+            <Card
+              className="chart-card"
+              size="small"
+              styles={{ body: { padding: '18px 20px' } }}
+              title={
+                <Space>
+                  <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                    <HistoryOutlined style={{ color: '#fff', fontSize: 14 }} />
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{t('dashboard.recentActivity')}</span>
+                </Space>
+              }
+              extra={<Button type="link" size="small" onClick={() => navigate('/activity')}>{t('dashboard.viewAll')} <ArrowRightOutlined /></Button>}
+            >
               <List
                 dataSource={activity.slice(0, 6)}
                 renderItem={(a) => (
-                  <List.Item style={{ padding: '4px 0' }}>
-                    <Text style={{ fontSize: 12 }}>{a.message}</Text>
-                    <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>{new Date(a.timestamp).toLocaleString()}</Text>
+                  <List.Item style={{ padding: '5px 0' }}>
+                    <div>
+                      <Text style={{ fontSize: 12 }}>{a.message}</Text>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 10 }}>{new Date(a.timestamp).toLocaleString()}</Text>
+                      </div>
+                    </div>
                   </List.Item>
                 )}
-                locale={{ emptyText: <Text type="secondary">{t('msg.noData')}</Text>}}
+                locale={{ emptyText: <Text type="secondary">{t('msg.noData')}</Text> }}
                 size="small"
               />
             </Card>

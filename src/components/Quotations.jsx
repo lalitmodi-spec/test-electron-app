@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Card, Button, Input, Select, Space, Tag, Modal, Typography, Row, Col,
+  Table, Card, Button, Input, Select, Space, Tag, Drawer, Typography, Row, Col,
   Statistic, Popconfirm, message, Tooltip, Descriptions, Divider
 } from 'antd';
 import {
   PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined,
-  SearchOutlined, SwapOutlined
+  SearchOutlined, SwapOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import db, { logActivity, convertQuotationToInvoice } from '../db';
 import { generateQuotationPDF } from '../utils/pdfExport';
@@ -141,17 +141,26 @@ export default function Quotations() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('quotation.title')}</Title>
-          <Text type="secondary">{`${quotations.length} ${t('common.total').toLowerCase()}`}</Text>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/quotation/new')}>
-            {t('quotation.newTitle')}
-          </Button>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <FileTextOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('quotation.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{`${quotations.length} ${t('common.total').toLowerCase()}`}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/quotation/new')}>
+              {t('quotation.newTitle')}
+            </Button>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
@@ -196,12 +205,13 @@ export default function Quotations() {
           scroll={{ x: 1000 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal
+      <Drawer
         title={<Space><Text strong>{view?.quotationNo}</Text><Tag color={statusColors[view?.status]}>{view?.status ? t(`quotation.${view.status}`) : ''}</Tag></Space>}
         open={!!view}
-        onCancel={() => setView(null)}
-        width={700}
-        footer={
+        onClose={() => setView(null)}
+        placement="right"
+        width={520}
+        extra={
           <Space>
             <Select defaultValue="professional" size="small" style={{ width: 120 }}
               onChange={(val) => { handlePdf(view, val); setView(null); }}>
@@ -272,7 +282,7 @@ export default function Quotations() {
             )}
           </div>
         )}
-      </Modal>
+      </Drawer>
     </div>
   );
 }

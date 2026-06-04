@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Card, Button, Input, Select, Space, Tag, Modal, Typography, Row, Col,
-  Statistic, Popconfirm, message, Tooltip, Descriptions, Divider
+  Table, Card, Button, Input, Select, Space, Tag, Drawer, Typography, Row, Col,
+  Statistic, Popconfirm, message, Tooltip, Descriptions, Divider, Dropdown
 } from 'antd';
 import {
   PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined,
-  SearchOutlined, FilterOutlined, DollarOutlined, MailOutlined, BellOutlined, SwapOutlined
+  SearchOutlined, DollarOutlined, MailOutlined, BellOutlined, SwapOutlined, DownOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import db, { logActivity, getPaymentSummary, getSettings } from '../db';
 import { generateInvoicePDF } from '../utils/pdfExport';
 import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
+
+const PDF_TEMPLATES = ['professional', 'classic', 'minimal'];
 
 export default function Invoices() {
   const navigate = useNavigate();
@@ -50,10 +53,21 @@ export default function Invoices() {
     message.success(t('msg.pdfGenerated'));
   }
 
+  function getPdfMenuItems(inv, onDone) {
+    return PDF_TEMPLATES.map(key => ({
+      key,
+      label: t(`pdfTemplates.${key}`),
+      onClick: () => {
+        handlePdf(inv, key);
+        if (onDone) onDone();
+      },
+    }));
+  }
+
   async function handleReminder(inv) {
     const settings = await getSettings();
     const template = settings.reminderNote || 'Dear {{customer}},\n\nReminder: Invoice {{invoiceNo}} of ₹{{amount}} is due on {{dueDate}}.\n\n{{businessName}}';
-    const message = template
+    const msg = template
       .replace(/\{\{customer\}\}/g, inv.customerName || 'Customer')
       .replace(/\{\{invoiceNo\}\}/g, inv.invoiceNo)
       .replace(/\{\{amount\}\}/g, `₹${Number(inv.grandTotal).toFixed(2)}`)
@@ -64,10 +78,10 @@ export default function Invoices() {
       await window.electronAPI.sendEmail({
         to: inv.customerEmail,
         subject: `Payment Reminder: ${inv.invoiceNo}`,
-        body: message,
+        body: msg,
       });
     } else {
-      await navigator.clipboard.writeText(message);
+      await navigator.clipboard.writeText(msg);
       message.success(t('invoice.reminderTextCopied'));
     }
     await db.invoices.update(inv.id, { reminderSent: true, reminderDate: new Date().toISOString().split('T')[0] });
@@ -152,19 +166,16 @@ export default function Invoices() {
       sorter: (a, b) => Number(a.grandTotal) - Number(b.grandTotal),
     },
     {
-      title: '', key: 'actions', width: 200, align: 'right',
+      title: '', key: 'actions', width: 240, align: 'right',
       render: (_, r) => (
         <Space>
           <Tooltip title={t('common.view')}><Button size="small" icon={<EyeOutlined />} onClick={() => openView(r)} /></Tooltip>
           <Tooltip title={t('common.edit')}><Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/invoice/edit/${r.id}`)} /></Tooltip>
-          <Tooltip title={t('common.pdf')}>
-            <Select size="small" style={{ width: 90 }} value="professional" onChange={(val) => handlePdf(r, val)}
-              onClick={(e) => e.stopPropagation()}>
-              <Select.Option value="professional">{t('pdfTemplates.professional')}</Select.Option>
-              <Select.Option value="classic">{t('pdfTemplates.classic')}</Select.Option>
-              <Select.Option value="minimal">{t('pdfTemplates.minimal')}</Select.Option>
-            </Select>
-          </Tooltip>
+          <Dropdown menu={{ items: getPdfMenuItems(r) }} trigger={['click']}>
+            <Button size="small" icon={<FilePdfOutlined />}>
+              PDF <DownOutlined />
+            </Button>
+          </Dropdown>
           {r.status !== 'paid' && (
             <Tooltip title={t('invoice.sendReminder')}>
               <Button size="small" icon={<BellOutlined />}
@@ -182,45 +193,57 @@ export default function Invoices() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('invoice.title')}</Title>
-          <Text type="secondary">{invoices.length} {t('common.total')}</Text>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <FileTextOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('invoice.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{invoices.length} {t('common.total')}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/invoice/new')}>
+              {t('invoice.newTitle')}
+            </Button>
+          </Col>
+        </Row>
+      </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24} sm={8}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #6366f1', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><DollarOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('invoice.totalValue')}</div>
+            <div className="stat-value" style={{ color: '#6366f1' }}>₹{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
         </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/invoice/new')}>
-            {t('invoice.newTitle')}
-          </Button>
+        <Col xs={24} sm={8}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #52c41a', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><DollarOutlined style={{ color: '#52c41a', marginRight: 4 }} />{t('invoice.collected')}</div>
+            <div className="stat-value" style={{ color: '#52c41a' }}>₹{paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #ff4d4f', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><DollarOutlined style={{ color: '#ff4d4f', marginRight: 4 }} />{t('invoice.outstanding')}</div>
+            <div className="stat-value" style={{ color: '#ff4d4f' }}>₹{(totalAmount - paidAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={8}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
-            <Statistic title={t('invoice.totalValue')} value={totalAmount} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}>
-            <Statistic title={t('invoice.collected')} value={paidAmount} precision={2} prefix="₹" valueStyle={{ color: '#52c41a' }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #ff4d4f' } }}>
-            <Statistic title={t('invoice.outstanding')} value={totalAmount - paidAmount} precision={2} prefix="₹" valueStyle={{ color: '#ff4d4f' }} />
-          </Card>
-        </Col>
-      </Row>
-
-      <Card styles={{ body: { padding: 0 } }}>
+      <Card className="chart-card" styles={{ body: { padding: 0 }, boxShadow: 'none' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
-          <Row gutter={16}>
+          <Row gutter={16} align="middle">
             <Col xs={24} sm={12} md={8}>
               <Input prefix={<SearchOutlined />} placeholder={t('placeholder.search')}
                 value={search} onChange={e => setSearch(e.target.value)} allowClear />
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Select value={statusFilter} onChange={setStatusFilter} placeholder={t('placeholder.search')} allowClear style={{ width: '100%' }}>
+              <Select value={statusFilter} onChange={setStatusFilter} placeholder={t('common.status')} allowClear style={{ width: '100%' }}>
                 <Select.Option value="paid">{t('common.paid')}</Select.Option>
                 <Select.Option value="unpaid">{t('common.unpaid')}</Select.Option>
                 <Select.Option value="partial">{t('common.partial')}</Select.Option>
@@ -231,61 +254,57 @@ export default function Invoices() {
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (total) => `${total} ${t('invoice.title').toLowerCase()}` }}
-          scroll={{ x: 900 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 960 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal
-        title={<Space><Text strong>{view?.invoiceNo}</Text><Tag color={view?.status === 'paid' ? 'success' : view?.status === 'partial' ? 'warning' : 'error'}>{view?.status}</Tag></Space>}
+      <Drawer
+        title={
+          <Row justify="space-between" align="middle" style={{ width: '100%', paddingRight: 24 }}>
+            <Space>
+              <FilePdfOutlined style={{ color: '#6366f1' }} />
+              <Text strong style={{ fontSize: 16 }}>{view?.invoiceNo}</Text>
+            </Space>
+            <Tag color={view?.status === 'paid' ? 'success' : view?.status === 'partial' ? 'warning' : 'error'} style={{ borderRadius: 6, fontSize: 12, padding: '2px 10px' }}>
+              {view?.status}
+            </Tag>
+          </Row>
+        }
         open={!!view}
-        onCancel={() => setView(null)}
-        width={700}
-        footer={
+        onClose={() => setView(null)}
+        width={640}
+        placement="right"
+        extra={
           <Space>
-            <Select defaultValue="professional" size="small" style={{ width: 120 }}
-              onChange={(val) => { handlePdf(view, val); setView(null); }}>
-              <Select.Option value="professional">{t('common.pdf')} ({t('pdfTemplates.professional')})</Select.Option>
-              <Select.Option value="classic">{t('common.pdf')} ({t('pdfTemplates.classic')})</Select.Option>
-              <Select.Option value="minimal">{t('common.pdf')} ({t('pdfTemplates.minimal')})</Select.Option>
-            </Select>
-            <Tooltip title={t('common.email')}>
-              <Button icon={<MailOutlined />} onClick={() => { handleEmail(view); setView(null); }} />
-            </Tooltip>
-            <Button type="primary" icon={<EditOutlined />}
-              onClick={() => { navigate(`/invoice/edit/${view.id}`); setView(null); }}>{t('common.edit')}</Button>
+            <Dropdown menu={{ items: getPdfMenuItems(view, () => setView(null)) }} trigger={['click']}>
+              <Button size="small" icon={<FilePdfOutlined />}>
+                PDF <DownOutlined />
+              </Button>
+            </Dropdown>
+            <Button size="small" icon={<MailOutlined />} onClick={() => { handleEmail(view); setView(null); }} />
+            <Button size="small" type="primary" icon={<EditOutlined />}
+              onClick={() => { navigate(`/invoice/edit/${view.id}`); setView(null); }}>
+              {t('common.edit')}
+            </Button>
           </Space>
         }
       >
         {view && (
           <div>
             <Descriptions column={2} size="small" bordered style={{ marginBottom: 16 }}>
-              <Descriptions.Item label={t('common.date')}>{view.date}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.customer')}>{view.customerName || '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('common.date')}>{view.date}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.companyName')}>{view.customerCompany || '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('invoice.dueDate')}>{view.dueDate || '-'}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.gstin')}>{view.customerGstin || '-'}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.state')}>{view.customerState || '-'}</Descriptions.Item>
-              <Descriptions.Item label={t('invoice.paymentMethod')}>{view.paymentMethod || '-'}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.poNumber')}>{view.poNumber || '-'}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.paymentTerms')}>{view.paymentTerms ? view.paymentTerms.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '-'}</Descriptions.Item>
+              <Descriptions.Item label={t('invoice.paymentMethod')}>{view.paymentMethod || '-'}</Descriptions.Item>
               <Descriptions.Item label={t('invoice.reverseCharge')}>{view.reverseCharge ? <Tag color="red">{t('common.yes')}</Tag> : t('common.no')}</Descriptions.Item>
-              <Descriptions.Item label={t('invoice.paidAmount')}>
-                <Text style={{ color: '#52c41a' }}>₹{Number(view._paid).toFixed(2)}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('invoice.balance')}>
-                {view._paid < view.grandTotal ? (
-                  <Text type="danger">₹{Number(view.grandTotal - view._paid).toFixed(2)}</Text>
-                ) : <Tag color="success">{t('msg.settled')}</Tag>}
-              </Descriptions.Item>
             </Descriptions>
-            {(view.reminderDate || view.reminderNote) && (
-              <Descriptions column={2} size="small" bordered style={{ marginBottom: 16 }}>
-                <Descriptions.Item label={t('reminder.date')}>{view.reminderDate || '-'}</Descriptions.Item>
-                <Descriptions.Item label={t('reminder.sent')}>{view.reminderSent ? <Tag color="success">{t('common.yes')}</Tag> : <Tag color="warning">{t('common.no')}</Tag>}</Descriptions.Item>
-                <Descriptions.Item label={t('reminder.note')} span={2}>{view.reminderNote || '-'}</Descriptions.Item>
-              </Descriptions>
-            )}
 
             {(view.transporterName || view.vehicleNumber) && (
-              <Descriptions column={3} size="small" bordered style={{ marginBottom: 16 }}>
+              <Descriptions column={2} size="small" bordered style={{ marginBottom: 16 }}>
                 <Descriptions.Item label={t('transport.transporterName')}>{view.transporterName || '-'}</Descriptions.Item>
                 <Descriptions.Item label={t('transport.vehicleNumber')}>{view.vehicleNumber || '-'}</Descriptions.Item>
                 <Descriptions.Item label={t('transport.modeOfTransport')}>{view.modeOfTransport || '-'}</Descriptions.Item>
@@ -295,36 +314,48 @@ export default function Invoices() {
               </Descriptions>
             )}
 
+            <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>{t('invoice.items')}</Text>
             <Table dataSource={view.items || []} rowKey={(_, i) => i} pagination={false} size="small"
               columns={[
                 { title: t('invoice.items'), dataIndex: 'name', key: 'name' },
                 { title: 'HSN', dataIndex: 'hsn', key: 'hsn', render: (v) => v || '-' },
                 { title: t('invoice.qty'), dataIndex: 'qty', key: 'qty', align: 'center' },
                 { title: t('invoice.rate'), dataIndex: 'rate', key: 'rate', align: 'right', render: (v) => `₹${Number(v).toFixed(2)}` },
+                { title: t('invoice.taxRate'), dataIndex: 'taxRate', key: 'taxRate', align: 'center', render: (v) => v ? `${v}%` : '-' },
                 { title: t('common.amount'), dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => `₹${Number(v).toFixed(2)}` },
-              ]} />
+              ]}
+              style={{ marginBottom: 16 }} />
 
-            <Row justify="end" style={{ marginTop: 12 }}>
-              <Col span={10}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Row justify="end" style={{ marginTop: 8 }}>
+              <Col xs={24} sm={18}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 16px', background: 'rgba(99,102,241,0.03)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                   <Row justify="space-between"><Text type="secondary">{t('invoice.subtotal')}</Text><Text>₹{Number(view.subtotal).toFixed(2)}</Text></Row>
-                  <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')}</Text><Text>₹{Number(view.cgst).toFixed(2)}</Text></Row>
-                  <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')}</Text><Text>₹{Number(view.sgst).toFixed(2)}</Text></Row>
+                  <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')} ({(Number(view.cgst) && Number(view.subtotal) ? (Number(view.cgst) / Number(view.subtotal) * 100).toFixed(1) : 0)}%)</Text><Text>₹{Number(view.cgst).toFixed(2)}</Text></Row>
+                  <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')} ({(Number(view.sgst) && Number(view.subtotal) ? (Number(view.sgst) / Number(view.subtotal) * 100).toFixed(1) : 0)}%)</Text><Text>₹{Number(view.sgst).toFixed(2)}</Text></Row>
                   {Number(view.discount) > 0 && (
                     <Row justify="space-between"><Text type="secondary">{t('invoice.discount')}</Text><Text type="danger">-₹{Number(view.discount).toFixed(2)}</Text></Row>
                   )}
-                  <Divider style={{ margin: '2px 0' }} />
+                  <Divider style={{ margin: '4px 0' }} />
                   <Row justify="space-between"><Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text><Text strong style={{ fontSize: 16, color: '#6366f1' }}>₹{Number(view.grandTotal).toFixed(2)}</Text></Row>
-                  <Row justify="space-between"><Text type="secondary">{t('common.paid')}</Text><Text style={{ color: '#52c41a' }}>₹{Number(view._paid).toFixed(2)}</Text></Row>
+                  <Divider style={{ margin: '4px 0' }} />
+                  <Row justify="space-between"><Text type="secondary">{t('common.paid')}</Text><Text style={{ color: '#52c41a', fontWeight: 600 }}>₹{Number(view._paid).toFixed(2)}</Text></Row>
                   {view._paid < view.grandTotal && (
-                    <Row justify="space-between"><Text type="secondary">{t('invoice.balance')}</Text><Text type="danger">₹{Number(view.grandTotal - view._paid).toFixed(2)}</Text></Row>
+                    <Row justify="space-between"><Text type="secondary">{t('invoice.balance')}</Text><Text style={{ color: '#ff4d4f', fontWeight: 600 }}>₹{Number(view.grandTotal - view._paid).toFixed(2)}</Text></Row>
                   )}
                 </div>
               </Col>
             </Row>
+
+            {(view.reminderDate || view.reminderNote) && (
+              <Descriptions column={2} size="small" bordered style={{ marginTop: 16 }}>
+                <Descriptions.Item label={t('reminder.date')}>{view.reminderDate || '-'}</Descriptions.Item>
+                <Descriptions.Item label={t('reminder.sent')}>{view.reminderSent ? <Tag color="success">{t('common.yes')}</Tag> : <Tag color="warning">{t('common.no')}</Tag>}</Descriptions.Item>
+                <Descriptions.Item label={t('reminder.note')} span={2}>{view.reminderNote || '-'}</Descriptions.Item>
+              </Descriptions>
+            )}
           </div>
         )}
-      </Modal>
+      </Drawer>
     </div>
   );
 }

@@ -3,11 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 import {
   Form, Input, Select, DatePicker, InputNumber, Button, Table, Card, Typography, Space,
-  message, Divider, Row, Col, Popconfirm, Modal, Tag, Collapse
+  message, Divider, Row, Col, Popconfirm, Drawer, Tag, Collapse
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, SaveOutlined, FilePdfOutlined, ArrowLeftOutlined,
-  DollarOutlined, TruckOutlined, BellOutlined, SwapOutlined
+  DollarOutlined, TruckOutlined, BellOutlined, SwapOutlined, FileTextOutlined, ShoppingOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import db, { getSettings, logActivity, recordPayment, getPaymentsForInvoice, getNextInvoiceNo } from '../db';
@@ -316,19 +316,29 @@ export default function InvoiceForm() {
 
   return (
     <div>
-      <Row align="middle" style={{ marginBottom: 20 }}>
-        <Col flex="auto">
-          <Title level={3} style={{ margin: 0 }}>{t(isEdit ? 'invoice.editTitle' : 'invoice.newTitle')}</Title>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<FilePdfOutlined />} size="small" onClick={() => setTemplatePreviewOpen(true)}>
-              {t('invoice.template')}: {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)}
-            </Button>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/invoices')}>{t('common.back')}</Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 20 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <FileTextOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t(isEdit ? 'invoice.editTitle' : 'invoice.newTitle')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{isEdit ? 'Edit existing invoice' : 'Create a new invoice'}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<FilePdfOutlined />} onClick={() => setTemplatePreviewOpen(true)}>
+                {t('invoice.template')}: {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)}
+              </Button>
+              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/invoices')}>{t('common.back')}</Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
       <Card>
         <Form form={form} layout="vertical" initialValues={{
@@ -453,7 +463,14 @@ export default function InvoiceForm() {
           </Row>
 
           <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-            <Col><Text strong>{t('invoice.items')}</Text></Col>
+            <Col>
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #eb2f96, #f06292)', width: 28, height: 28, borderRadius: 6 }}>
+                  <ShoppingOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <Text strong style={{ fontSize: 15 }}>{t('invoice.items')}</Text>
+              </Space>
+            </Col>
             <Col><Button type="dashed" icon={<PlusOutlined />} onClick={addItem}>{t('invoice.addItem')}</Button></Col>
           </Row>
 
@@ -463,11 +480,11 @@ export default function InvoiceForm() {
           <Divider style={{ margin: '16px 0' }} />
 
           <Row justify="end">
-            <Col xs={24} sm={12} md={8}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Col xs={24} sm={14} md={8}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 18px', background: 'rgba(99,102,241,0.03)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
                 <Row justify="space-between"><Text type="secondary">{t('invoice.subtotal')}</Text><Text>₹{totals.subtotal.toFixed(2)}</Text></Row>
-                <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')}</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
-                <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')}</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')} ({(totals.subtotal > 0 ? (totals.cgst / totals.subtotal * 100).toFixed(1) : 0)}%)</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
+                <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')} ({(totals.subtotal > 0 ? (totals.sgst / totals.subtotal * 100).toFixed(1) : 0)}%)</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
                 <Row justify="space-between" align="middle">
                   <Text type="secondary">{t('invoice.discount')}</Text>
                   <InputNumber prefix="₹" min={0} step={0.01} value={discount}
@@ -487,8 +504,10 @@ export default function InvoiceForm() {
           <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
             <Col>
               <Space>
-                <TruckOutlined />
-                <Text strong>{t('invoice.transportDetails')}</Text>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #13c2c2, #36cfc9)', width: 28, height: 28, borderRadius: 6 }}>
+                  <TruckOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <Text strong style={{ fontSize: 15 }}>{t('invoice.transportDetails')}</Text>
               </Space>
             </Col>
             <Col>
@@ -542,8 +561,10 @@ export default function InvoiceForm() {
           <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
             <Col>
               <Space>
-                <BellOutlined />
-                <Text strong>{t('invoice.paymentReminder')}</Text>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #faad14, #ffc53d)', width: 28, height: 28, borderRadius: 6 }}>
+                  <BellOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <Text strong style={{ fontSize: 15 }}>{t('invoice.paymentReminder')}</Text>
               </Space>
             </Col>
             <Col>
@@ -614,9 +635,9 @@ export default function InvoiceForm() {
           </div>
         )}
 
-        <Row justify="end" gutter={12} align="middle">
-          {isEdit && (
-            <Col>
+        <Row justify="space-between" align="middle">
+          <Col>
+            {isEdit && (
               <Button icon={<DollarOutlined />} onClick={() => {
                 paymentForm.resetFields();
                 paymentForm.setFieldsValue({ date: dayjs(), method: 'Cash', amount: balance > 0 ? balance : '' });
@@ -624,21 +645,29 @@ export default function InvoiceForm() {
               }}>
                 {t('invoice.recordPayment')}
               </Button>
-            </Col>
-          )}
-          <Col><Button onClick={() => navigate('/invoices')}>{t('common.cancel')}</Button></Col>
-          <Col><Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={saving}>{t('common.save')}</Button></Col>
+            )}
+          </Col>
           <Col>
-            <Button icon={<FilePdfOutlined />} onClick={() => handleSave(true, selectedTemplate)} loading={saving}
-              style={{ background: '#52c41a', borderColor: '#52c41a', color: 'white' }}>
-              PDF ({selectedTemplate})
-            </Button>
+            <Space>
+              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/invoices')}>{t('common.cancel')}</Button>
+              <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={saving}>{t('common.save')}</Button>
+              <Button icon={<FilePdfOutlined />} onClick={() => handleSave(true, selectedTemplate)} loading={saving}
+                style={{ background: '#52c41a', borderColor: '#52c41a', color: 'white' }}>
+                {t('common.save')} &amp; PDF
+              </Button>
+            </Space>
           </Col>
         </Row>
       </Card>
 
-      <Modal title={t('invoice.recordPayment')} open={showPayment} onCancel={() => setShowPayment(false)}
-        onOk={handleRecordPayment} okText={t('common.save')} width={450}>
+      <Drawer title={t('invoice.recordPayment')} open={showPayment} onClose={() => setShowPayment(false)}
+        placement="right" width={400}
+        extra={
+          <Space>
+            <Button onClick={() => setShowPayment(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleRecordPayment}>{t('common.save')}</Button>
+          </Space>
+        }>
         <Form form={paymentForm} layout="vertical">
           <Form.Item name="amount" label={t('common.amount')} rules={[{ required: true }]}>
             <InputNumber min={1} max={totals.grandTotal} step={0.01} prefix="₹" style={{ width: '100%' }} />
@@ -667,7 +696,7 @@ export default function InvoiceForm() {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
       <TemplatePreview
         selected={selectedTemplate}

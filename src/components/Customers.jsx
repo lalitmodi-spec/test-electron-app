@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Card, Button, Input, InputNumber, Space, Modal, Form, Typography,
+  Table, Card, Button, Input, InputNumber, Space, Drawer, Form, Typography,
   Row, Col, Popconfirm, message, Tag, Tooltip, Tabs, Statistic, Descriptions
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
-  EyeOutlined, DollarOutlined, WalletOutlined, RiseOutlined, FallOutlined,
+  EyeOutlined, TeamOutlined, DollarOutlined, WalletOutlined, RiseOutlined, FallOutlined,
   PhoneOutlined, MailOutlined, GlobalOutlined, BankOutlined
 } from '@ant-design/icons';
 import db, { logActivity, getCustomerPaymentSummary, getInvoicesForCustomer, getPaymentsForCustomer } from '../db';
@@ -283,15 +283,24 @@ export default function Customers() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('customer.title')}</Title>
-          <Text type="secondary">{customers.length} {t('customer.title').toLowerCase()}</Text>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('customer.addTitle')}</Button>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)' }}>
+                <TeamOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('customer.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{customers.length} {t('customer.title').toLowerCase()}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('customer.addTitle')}</Button>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
@@ -364,18 +373,23 @@ export default function Customers() {
         />
       </Card>
 
-      <Modal
+      <Drawer
         title={edit ? t('customer.editTitle') : t('customer.addTitle')}
         open={showForm}
-        onCancel={() => setShowForm(false)}
-        onOk={handleSave}
-        okText={edit ? t('common.update') : t('common.save')}
-        width={650}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        width={520}
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{edit ? t('common.update') : t('common.save')}</Button>
+          </Space>
+        }
       >
         {formFields}
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         title={
           <Space>
             <Text strong>{detailCustomer?.name}</Text>
@@ -384,9 +398,9 @@ export default function Customers() {
           </Space>
         }
         open={!!detailCustomer}
-        onCancel={() => { setDetailCustomer(null); setDetailData(null); }}
-        width={800}
-        footer={null}
+        onClose={() => { setDetailCustomer(null); setDetailData(null); }}
+        placement="right"
+        width={520}
         loading={detailLoading}
       >
         {detailData && (
@@ -438,7 +452,7 @@ export default function Customers() {
             <Tabs items={detailTabs} />
           </div>
         )}
-      </Modal>
+      </Drawer>
     </div>
   );
 }

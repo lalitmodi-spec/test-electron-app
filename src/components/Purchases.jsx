@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import {
-  Table, Card, Button, Input, Select, Space, Modal, Form, Typography,
+  Table, Card, Button, Input, Select, Space, Drawer, Form, Typography,
   Row, Col, Popconfirm, message, Tag, DatePicker, InputNumber, Tooltip, Statistic
 } from 'antd';
 import {
@@ -172,20 +172,29 @@ export default function Purchases() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('purchase.title')}</Title>
-          <Text type="secondary">Stock inward management</Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={load}>{t('common.refresh')}</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t('purchase.recordPurchase')}
-            </Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #13c2c2, #36cfc9)' }}>
+                <ShoppingCartOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('purchase.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>Stock inward management</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={load}>{t('common.refresh')}</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                {t('purchase.recordPurchase')}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={6}>
@@ -244,14 +253,19 @@ export default function Purchases() {
           </Space>}} />
       </Card>
 
-      <Modal
+      <Drawer
         title={<Space><ShoppingCartOutlined style={{ color: '#6366f1' }} />{t('purchase.recordPurchase')}</Space>}
         open={showForm}
-        onCancel={() => setShowForm(false)}
-        onOk={handleSave}
-        okText={t('purchase.recordPurchase')}
-        width={600}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        width={520}
         destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{t('purchase.recordPurchase')}</Button>
+          </Space>
+        }
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>
@@ -369,14 +383,14 @@ export default function Purchases() {
             <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         title={<Space><EyeOutlined style={{ color: '#6366f1' }} />{t('purchase.details')}</Space>}
         open={!!showView}
-        onCancel={() => setShowView(null)}
-        footer={null}
-        width={500}
+        onClose={() => setShowView(null)}
+        placement="right"
+        width={520}
       >
         {showView && (
           <div>
@@ -400,7 +414,7 @@ export default function Purchases() {
             </Row>
           </div>
         )}
-      </Modal>
+      </Drawer>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import {
-  Table, Card, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Typography,
+  Table, Card, Button, Drawer, Form, Input, Select, DatePicker, InputNumber, Typography,
   Row, Col, Statistic, message, Tag, Space, Popconfirm
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, DollarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import db, { recordPayment, deletePayment, logActivity } from '../db';
 
@@ -136,20 +136,29 @@ export default function Payments() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('payment.title')}</Title>
-          <Text type="secondary">Track all payments received</Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<DownloadOutlined />} onClick={downloadPaymentsCsv}>{t('payment.downloadCsv')}</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t('payment.recordPayment')}
-            </Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)' }}>
+                <DollarOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('payment.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>Track all payments received</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<DownloadOutlined />} onClick={downloadPaymentsCsv}>{t('payment.downloadCsv')}</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                {t('payment.recordPayment')}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={8}>
@@ -180,13 +189,18 @@ export default function Payments() {
           scroll={{ x: 700 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal
+      <Drawer
         title={t('payment.recordPayment')}
         open={showForm}
-        onCancel={() => setShowForm(false)}
-        onOk={handleSave}
-        okText={t('payment.recordPayment')}
-        width={500}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        width={520}
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{t('payment.recordPayment')}</Button>
+          </Space>
+        }
       >
         <Form form={form} layout="vertical">
           <Form.Item name="invoiceId" label={t('payment.invoice')} rules={[{ required: true, message: t('placeholder.selectInvoice') }]}>
@@ -233,7 +247,7 @@ export default function Payments() {
             <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
     </div>
   );
 }

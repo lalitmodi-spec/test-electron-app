@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Card, Button, Input, Select, Space, Modal, Form, InputNumber, Typography,
+  Table, Card, Button, Input, Select, Space, Drawer, Form, InputNumber, Typography,
   Row, Col, Popconfirm, message, Tag, Tooltip, Statistic, Progress
 } from 'antd';
 import {
@@ -204,25 +204,34 @@ export default function Products() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('product.title')}</Title>
-          <Text type="secondary">
-            {products.length} {t('product.products').toLowerCase()}
-            {lowStockCount > 0 && <Text type="danger"> • {lowStockCount} {t('product.lowStock').toLowerCase()}</Text>}
-          </Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/purchases')}>
-              {t('product.purchased')}
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t('product.addTitle')}
-            </Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #eb2f96, #f06292)' }}>
+                <ShoppingOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('product.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {products.length} {t('product.products').toLowerCase()}
+                  {lowStockCount > 0 && <Text type="danger"> • {lowStockCount} {t('product.lowStock').toLowerCase()}</Text>}
+                </Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/purchases')}>
+                {t('product.purchased')}
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                {t('product.addTitle')}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
@@ -276,14 +285,19 @@ export default function Products() {
           scroll={{ x: 900 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal
+      <Drawer
         title={edit ? t('product.editTitle') : t('product.addTitle')}
         open={showForm}
-        onCancel={() => setShowForm(false)}
-        onOk={handleSave}
-        okText={edit ? t('common.update') : t('common.save')}
-        width={500}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        width={520}
         destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{edit ? t('common.update') : t('common.save')}</Button>
+          </Space>
+        }
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label={`${t('product.productName')} *`} rules={[{ required: true }]}>
@@ -363,16 +377,21 @@ export default function Products() {
             <Input.TextArea rows={2} placeholder={t('placeholder.description')} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         title={<Space><PlusCircleOutlined style={{ color: '#13c2c2' }} />{t('product.adjustStock')}: {showStockAdjust?.name}</Space>}
         open={!!showStockAdjust}
-        onCancel={() => setShowStockAdjust(null)}
-        onOk={handleStockAdjust}
-        okText={t('product.adjustStock')}
-        width={420}
+        onClose={() => setShowStockAdjust(null)}
+        placement="right"
+        width={520}
         destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setShowStockAdjust(null)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleStockAdjust}>{t('product.adjustStock')}</Button>
+          </Space>
+        }
       >
         <div style={{ marginBottom: 16, padding: 12, background: 'rgba(99,102,241,0.06)', borderRadius: 8 }}>
           <Text type="secondary">{t('product.currentStock')}:</Text>
@@ -403,7 +422,7 @@ export default function Products() {
             <Input placeholder={t('placeholder.reason')} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
     </div>
   );
 }

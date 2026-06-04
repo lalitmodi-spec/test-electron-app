@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -532,15 +532,24 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <Row align="middle" style={{ marginBottom: 16 }}>
-        <Col flex="auto">
-          <Title level={3} style={{ margin: 0 }}>{t('settings.title')}</Title>
-          <Text type="secondary">{t('settings.businessInfo')}</Text>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving}>{t('settings.save')}</Button>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row align="middle" gutter={[12, 12]}>
+          <Col flex="auto">
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <SettingOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('settings.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{t('settings.businessInfo')}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving}>{t('settings.save')}</Button>
+          </Col>
+        </Row>
+      </div>
 
       <Card styles={{ body: { padding: '16px 20px' } }}>
         <Form form={form} layout="vertical">

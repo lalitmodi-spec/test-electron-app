@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
-import { Table, Card, Button, Input, Select, Space, Modal, Form, Typography, Row, Col, Popconfirm, message, Tag, Tooltip, DatePicker, InputNumber } from 'antd';
-import { PlusOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, RollbackOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Input, Select, Space, Drawer, Form, Typography, Row, Col, Popconfirm, message, Tag, Tooltip, DatePicker, InputNumber } from 'antd';
+import { PlusOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import db, { logActivity, createCreditNote } from '../db';
 
@@ -142,15 +142,24 @@ export default function CreditNotes() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('creditNote.title')}</Title>
-          <Text type="secondary">{creditNotes.length} {t('common.total')} | ₹{totalCnAmount.toFixed(2)} {t('creditNote.issued')}</Text>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('creditNote.newTitle')}</Button>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #722ed1, #9254de)' }}>
+                <SwapOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('creditNote.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{creditNotes.length} {t('common.total')} | ₹{totalCnAmount.toFixed(2)} {t('creditNote.issued')}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('creditNote.newTitle')}</Button>
+          </Col>
+        </Row>
+      </div>
 
       <Card styles={{ body: { padding: 0 } }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
@@ -166,8 +175,14 @@ export default function CreditNotes() {
           scroll={{ x: 800 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal title={t('creditNote.newTitle')} open={showForm} onCancel={() => setShowForm(false)}
-        onOk={handleSave} okText={t('common.create')} width={700}>
+      <Drawer title={t('creditNote.newTitle')} open={showForm} onClose={() => setShowForm(false)}
+        placement="right" width={520}
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{t('common.create')}</Button>
+          </Space>
+        }>
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col xs={24} sm={12}>
@@ -245,10 +260,10 @@ export default function CreditNotes() {
             />
           </div>
         )}
-      </Modal>
+      </Drawer>
 
-      <Modal title={`${t('creditNote.title')}: ${viewCn?.cnNo}`} open={!!viewCn} onCancel={() => setViewCn(null)}
-        footer={null} width={600}>
+      <Drawer title={`${t('creditNote.title')}: ${viewCn?.cnNo}`} open={!!viewCn} onClose={() => setViewCn(null)}
+        placement="right" width={520}>
         {viewCn && (
           <div>
             <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -283,7 +298,7 @@ export default function CreditNotes() {
             />
           </div>
         )}
-      </Modal>
+      </Drawer>
     </div>
   );
 }

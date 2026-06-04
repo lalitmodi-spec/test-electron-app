@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import {
-  Table, Card, Button, Input, Select, Space, Modal, Form, Typography,
+  Table, Card, Button, Input, Select, Space, Drawer, Form, Typography,
   Row, Col, Popconfirm, message, Tag, DatePicker, InputNumber
 } from 'antd';
 import {
@@ -157,18 +157,27 @@ export default function Expenses() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('expense.title')}</Title>
-          <Text type="secondary">Track your business spending</Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<SettingOutlined />} onClick={() => setShowCatManager(true)}>{t('expense.categories')}</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('expense.addTitle')}</Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #fa8c16, #ffa940)' }}>
+                <WalletOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('expense.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>Track your business spending</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<SettingOutlined />} onClick={() => setShowCatManager(true)}>{t('expense.categories')}</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('expense.addTitle')}</Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
@@ -207,13 +216,18 @@ export default function Expenses() {
           scroll={{ x: 600 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal
+      <Drawer
         title={edit ? t('expense.editTitle') : t('expense.addTitle')}
         open={showForm}
-        onCancel={() => setShowForm(false)}
-        onOk={handleSave}
-        okText={edit ? t('common.update') : t('common.save')}
-        width={500}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        width={520}
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{edit ? t('common.update') : t('common.save')}</Button>
+          </Space>
+        }
       >
         <Form form={form} layout="vertical">
           <Form.Item name="title" label={t('expense.expenseTitle')} rules={[{ required: true }]}>
@@ -282,14 +296,14 @@ export default function Expenses() {
             <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         title={t('expense.manageCategories')}
         open={showCatManager}
-        onCancel={() => setShowCatManager(false)}
-        footer={null}
-        width={400}
+        onClose={() => setShowCatManager(false)}
+        placement="right"
+        width={520}
       >
         <div style={{ maxHeight: 300, overflow: 'auto', marginBottom: 16 }}>
           {categories.map(cat => (
@@ -311,7 +325,7 @@ export default function Expenses() {
             placeholder={t('expense.newCategory')} onPressEnter={addCategory} />
           <Button type="primary" icon={<PlusOutlined />} onClick={addCategory} />
         </Space.Compact>
-      </Modal>
+      </Drawer>
     </div>
   );
 }

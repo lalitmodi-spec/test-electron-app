@@ -181,86 +181,121 @@ export default function Reports() {
 
   const overviewContent = (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Space>
-            <BarChartOutlined style={{ color: '#6366f1' }} />
-            <Title level={4} style={{ margin: 0 }}>{t('report.overview')}</Title>
-          </Space>
-        </Col>
-        <Col>
-          <Space wrap>
-            <RangePicker
-              size="small"
-              value={dateRange}
-              onChange={(dates) => setDateRange(dates || [null, null])}
-              allowClear
-            />
-            <Segmented
-              value={period}
-              onChange={setPeriod}
-              options={[
-                { label: t('common.daily'), value: 'day' },
-                { label: t('common.weekly'), value: 'week' },
-                { label: t('common.monthly'), value: 'month' },
-                { label: t('common.yearly'), value: 'year' },
-              ]}
-            />
-            <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadCsv(
+      <div className="toolbar-card">
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space size={8}>
+              <RangePicker
+                size="small"
+                value={dateRange}
+                onChange={(dates) => setDateRange(dates || [null, null])}
+                allowClear
+                style={{ borderRadius: 8 }}
+              />
+              <Segmented
+                value={period}
+                onChange={setPeriod}
+                options={[
+                  { label: t('common.daily'), value: 'day' },
+                  { label: t('common.weekly'), value: 'week' },
+                  { label: t('common.monthly'), value: 'month' },
+                  { label: t('common.yearly'), value: 'year' },
+                ]}
+              />
+            </Space>
+          </Col>
+          <Col>
+            <Button icon={<DownloadOutlined />} onClick={() => downloadCsv(
               `overview_${period}_${new Date().toISOString().split('T')[0]}.csv`,
               [t('report.period'), t('common.invoice'), t('report.sales'), t('report.expenses'), t('report.profit')],
               data.sales.map((s, i) => [s.label, s.count, s.amount.toFixed(2), (data.expenses[i]?.amount || 0).toFixed(2), (s.amount - (data.expenses[i]?.amount || 0)).toFixed(2)])
-            )}>{t('report.downloadCsv')}</Button>
-          </Space>
+            )} style={{ borderRadius: 8 }}>{t('report.downloadCsv')}</Button>
+          </Col>
+        </Row>
+      </div>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #6366f1', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><RiseOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('report.totalSales')}</div>
+            <div className="stat-value" style={{ color: '#6366f1' }}>₹{(data.summary.totalSales || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #faad14', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><FileTextOutlined style={{ color: '#faad14', marginRight: 4 }} />{t('report.totalExpenses')}</div>
+            <div className="stat-value" style={{ color: '#faad14' }}>₹{(data.summary.totalExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #52c41a', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><BarChartOutlined style={{ color: '#52c41a', marginRight: 4 }} />{t('report.netProfit')}</div>
+            <div className="stat-value" style={{ color: (data.summary.profit || 0) >= 0 ? '#52c41a' : '#ff4d4f' }}>₹{(data.summary.profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #722ed1', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><FileTextOutlined style={{ color: '#722ed1', marginRight: 4 }} />{t('report.invoices')}</div>
+            <div className="stat-value" style={{ color: '#722ed1' }}>{data.summary.invoiceCount || 0}</div>
+          </Card>
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}><Statistic title={t('report.totalSales')} value={data.summary.totalSales} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}><Statistic title={t('report.totalExpenses')} value={data.summary.totalExpenses} precision={2} prefix="₹" valueStyle={{ color: '#faad14' }} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #52c41a' } }}><Statistic title={t('report.netProfit')} value={data.summary.profit} precision={2} prefix="₹" valueStyle={{ color: data.summary.profit >= 0 ? '#52c41a' : '#ff4d4f' }} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #722ed1' } }}><Statistic title={t('report.invoices')} value={data.summary.invoiceCount} prefix={<FileTextOutlined />} valueStyle={{ color: '#722ed1' }} /></Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
         <Col xs={24} lg={14}>
-          <Card title={<Space><LineChart />{t('report.salesTrend')}</Space>} size="small">
-            <ResponsiveContainer width="100%" height={300}>
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '20px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                  <BarChartOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('report.salesTrend')}</span>
+              </Space>
+            }
+          >
+            <ResponsiveContainer width="100%" height={310}>
               <AreaChart data={combined}>
                 <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} /><stop offset="95%" stopColor="#6366f1" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} /><stop offset="95%" stopColor="#6366f1" stopOpacity={0} /></linearGradient>
                   <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#faad14" stopOpacity={0.2} /><stop offset="95%" stopColor="#faad14" stopOpacity={0} /></linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <ReTooltip />
-                <Legend />
-                <Area type="monotone" dataKey="sales" stroke="#6366f1" fill="url(#salesGrad)" strokeWidth={2} name={t('report.sales')} dot={{ r: 3 }} />
-                <Area type="monotone" dataKey="expenses" stroke="#faad14" fill="url(#expGrad)" strokeWidth={2} name={t('report.expenses')} dot={{ r: 3 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <ReTooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: 'var(--bg-card)' }} />
+                <Legend iconType="circle" />
+                <Area type="monotone" dataKey="sales" stroke="#6366f1" fill="url(#salesGrad)" strokeWidth={2.5} name={t('report.sales')} dot={{ r: 3, fill: '#6366f1' }} activeDot={{ r: 5 }} />
+                <Area type="monotone" dataKey="expenses" stroke="#faad14" fill="url(#expGrad)" strokeWidth={2.5} name={t('report.expenses')} dot={{ r: 3, fill: '#faad14' }} activeDot={{ r: 5 }} />
               </AreaChart>
             </ResponsiveContainer>
           </Card>
         </Col>
         <Col xs={24} lg={10}>
-          <Card title={<Space><PieChartOutlined />{t('report.expensesByCategory')}</Space>} size="small">
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '20px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)', width: 28, height: 28, borderRadius: 6 }}>
+                  <PieChartOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('report.expensesByCategory')}</span>
+              </Space>
+            }
+          >
             {pieData.length === 0 ? (
-              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: 30 }}>{t('msg.noData')}</Text>
+              <Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '40px 0' }}>{t('msg.noData')}</Text>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={310}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} paddingAngle={2}>
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={110} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} paddingAngle={3}>
+                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
                   </Pie>
-                  <ReTooltip />
+                  <ReTooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -268,24 +303,48 @@ export default function Reports() {
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
         <Col xs={24} lg={12}>
-          <Card title={<Space><BarChartOutlined />{t('report.salesVsExpenses')}</Space>} size="small">
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '20px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #faad14, #ffc53d)', width: 28, height: 28, borderRadius: 6 }}>
+                  <BarChartOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('report.salesVsExpenses')}</span>
+              </Space>
+            }
+          >
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={combined}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <ReTooltip />
-                <Legend />
-                <Bar dataKey="sales" fill="#6366f1" radius={[4, 4, 0, 0]} name={t('report.sales')} />
-                <Bar dataKey="expenses" fill="#faad14" radius={[4, 4, 0, 0]} name={t('report.expenses')} />
+              <BarChart data={combined} barGap={4} barCategoryGap="25%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <ReTooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)' }} />
+                <Legend iconType="circle" />
+                <Bar dataKey="sales" fill="#6366f1" radius={[6, 6, 0, 0]} name={t('report.sales')} maxBarSize={36} />
+                <Bar dataKey="expenses" fill="#faad14" radius={[6, 6, 0, 0]} name={t('report.expenses')} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title={<Space><CalendarOutlined />{t('report.periodBreakdown')}</Space>} size="small">
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: 0 } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #722ed1, #9254de)', width: 28, height: 28, borderRadius: 6 }}>
+                  <CalendarOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('report.periodBreakdown')}</span>
+              </Space>
+            }
+          >
             <Table
               dataSource={data.sales.slice().reverse()}
               rowKey={(_, i) => i}
@@ -294,10 +353,11 @@ export default function Reports() {
               columns={[
                 { title: t('report.period'), dataIndex: 'label', key: 'label' },
                 { title: t('report.invoices'), dataIndex: 'count', key: 'count', align: 'right' },
-                { title: t('report.sales'), dataIndex: 'amount', key: 'sales', align: 'right', render: (v) => `₹${v.toFixed(2)}` },
+                { title: t('report.sales'), dataIndex: 'amount', key: 'sales', align: 'right', render: (v) => <Text strong>₹{v.toFixed(2)}</Text> },
                 { title: t('report.expenses'), dataIndex: 'amount', key: 'expenses', align: 'right', render: (_, r) => `₹${(data.expenses.find(e => e.label === r.label)?.amount || 0).toFixed(2)}` },
-                { title: t('report.profit'), key: 'profit', align: 'right', render: (_, r) => { const e = data.expenses.find(x => x.label === r.label); const p = r.amount - (e?.amount || 0); return <Text style={{ color: p >= 0 ? '#52c41a' : '#ff4d4f' }}>₹{p.toFixed(2)}</Text>; } },
+                { title: t('report.profit'), key: 'profit', align: 'right', render: (_, r) => { const e = data.expenses.find(x => x.label === r.label); const p = r.amount - (e?.amount || 0); return <Text style={{ color: p >= 0 ? '#52c41a' : '#ff4d4f', fontWeight: 600 }}>₹{p.toFixed(2)}</Text>; } },
               ]}
+              style={{ borderRadius: '0 0 12px 12px', overflow: 'hidden' }}
             />
           </Card>
         </Col>
@@ -307,59 +367,93 @@ export default function Reports() {
 
   const gstContent = (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Space>
-            <AuditOutlined style={{ color: '#722ed1' }} />
-            <Title level={4} style={{ margin: 0 }}>{t('report.gstSummary')}</Title>
-          </Space>
-        </Col>
-        <Col>
-          <Space wrap>
-            <RangePicker size="small" value={gstDateRange} onChange={(dates) => setGstDateRange(dates || [null, null])} allowClear />
-            <Segmented value={gstPeriod} onChange={setGstPeriod} options={[{ label: t('common.monthly'), value: 'month' }, { label: t('common.yearly'), value: 'year' }]} />
-            <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadCsv(
+      <div className="toolbar-card">
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space size={8}>
+              <RangePicker size="small" value={gstDateRange} onChange={(dates) => setGstDateRange(dates || [null, null])} allowClear style={{ borderRadius: 8 }} />
+              <Segmented value={gstPeriod} onChange={setGstPeriod} options={[{ label: t('common.monthly'), value: 'month' }, { label: t('common.yearly'), value: 'year' }]} />
+            </Space>
+          </Col>
+          <Col>
+            <Button icon={<DownloadOutlined />} onClick={() => downloadCsv(
               `gst_${gstPeriod}_${new Date().toISOString().split('T')[0]}.csv`,
               [t('report.period'), t('report.invoices'), t('report.taxableValue'), t('report.cgst'), t('report.sgst'), t('report.totalGst')],
               gstData.periods.map(p => [p.label, p.count, p.taxable.toFixed(2), p.cgst.toFixed(2), p.sgst.toFixed(2), p.total.toFixed(2)])
-            )}>{t('report.downloadCsv')}</Button>
-          </Space>
+            )} style={{ borderRadius: 8 }}>{t('report.downloadCsv')}</Button>
+          </Col>
+        </Row>
+      </div>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #6366f1', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><AuditOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('report.taxableValue')}</div>
+            <div className="stat-value" style={{ color: '#6366f1' }}>₹{(gstData.totalTaxable || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #722ed1', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><BarChartOutlined style={{ color: '#722ed1', marginRight: 4 }} />{t('report.cgst')}</div>
+            <div className="stat-value" style={{ color: '#722ed1' }}>₹{(gstData.totalCgst || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #13c2c2', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><BarChartOutlined style={{ color: '#13c2c2', marginRight: 4 }} />{t('report.sgst')}</div>
+            <div className="stat-value" style={{ color: '#13c2c2' }}>₹{(gstData.totalSgst || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #faad14', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><AuditOutlined style={{ color: '#faad14', marginRight: 4 }} />{t('report.totalGst')}</div>
+            <div className="stat-value" style={{ color: '#faad14' }}>₹{((gstData.totalCgst || 0) + (gstData.totalSgst || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </Card>
         </Col>
       </Row>
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}><Statistic title={t('report.taxableValue')} value={gstData.totalTaxable} precision={2} prefix="₹" valueStyle={{ color: '#6366f1' }} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #722ed1' } }}><Statistic title={t('report.cgst')} value={gstData.totalCgst} precision={2} prefix="₹" valueStyle={{ color: '#722ed1' }} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #13c2c2' } }}><Statistic title={t('report.sgst')} value={gstData.totalSgst} precision={2} prefix="₹" valueStyle={{ color: '#13c2c2' }} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #faad14' } }}><Statistic title={t('report.totalGst')} value={gstData.totalCgst + gstData.totalSgst} precision={2} prefix="₹" valueStyle={{ color: '#faad14' }} /></Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
         <Col xs={24} lg={12}>
-          <Card title={<Space><BarChartOutlined />CGST vs SGST</Space>} size="small">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={gstData.periods}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <ReTooltip />
-                <Legend />
-                <Bar dataKey="cgst" fill="#722ed1" radius={[4, 4, 0, 0]} name={t('report.cgst')} />
-                <Bar dataKey="sgst" fill="#13c2c2" radius={[4, 4, 0, 0]} name={t('report.sgst')} />
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '20px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #722ed1, #9254de)', width: 28, height: 28, borderRadius: 6 }}>
+                  <BarChartOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>CGST vs SGST</span>
+              </Space>
+            }
+          >
+            <ResponsiveContainer width="100%" height={310}>
+              <BarChart data={gstData.periods} barGap={4} barCategoryGap="25%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <ReTooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)' }} />
+                <Legend iconType="circle" />
+                <Bar dataKey="cgst" fill="#722ed1" radius={[6, 6, 0, 0]} name={t('report.cgst')} maxBarSize={36} />
+                <Bar dataKey="sgst" fill="#13c2c2" radius={[6, 6, 0, 0]} name={t('report.sgst')} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title={<Space><CalendarOutlined />{t('report.gstSummary')}</Space>} size="small">
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: 0 } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                  <CalendarOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('report.gstSummary')}</span>
+              </Space>
+            }
+          >
             <Table
               dataSource={gstData.periods.slice().reverse()}
               rowKey={(_, i) => i}
@@ -369,50 +463,81 @@ export default function Reports() {
                 { title: t('report.period'), dataIndex: 'label', key: 'label' },
                 { title: t('report.invoices'), dataIndex: 'count', key: 'count', align: 'right' },
                 { title: t('report.taxableValue'), dataIndex: 'taxable', key: 'taxable', align: 'right', render: (v) => <Text>₹{v.toFixed(2)}</Text> },
-                { title: t('report.cgst'), dataIndex: 'cgst', key: 'cgst', align: 'right', render: (v) => <Text style={{ color: '#722ed1' }}>₹{v.toFixed(2)}</Text> },
-                { title: t('report.sgst'), dataIndex: 'sgst', key: 'sgst', align: 'right', render: (v) => <Text style={{ color: '#13c2c2' }}>₹{v.toFixed(2)}</Text> },
+                { title: t('report.cgst'), dataIndex: 'cgst', key: 'cgst', align: 'right', render: (v) => <Text style={{ color: '#722ed1', fontWeight: 600 }}>₹{v.toFixed(2)}</Text> },
+                { title: t('report.sgst'), dataIndex: 'sgst', key: 'sgst', align: 'right', render: (v) => <Text style={{ color: '#13c2c2', fontWeight: 600 }}>₹{v.toFixed(2)}</Text> },
                 { title: t('report.totalGst'), dataIndex: 'total', key: 'total', align: 'right', render: (v) => <Text strong>₹{v.toFixed(2)}</Text> },
               ]}
+              style={{ borderRadius: '0 0 12px 12px', overflow: 'hidden' }}
             />
           </Card>
         </Col>
       </Row>
 
-      {gstData.periods.length > 0 && gstData.totalTaxable > 0 && (
-        <Card size="small" style={{ marginTop: 16, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)' }}>
-          <Space>
-            <AuditOutlined style={{ color: '#6366f1', fontSize: 20 }} />
-            <div>
-              <Text strong>{t('report.gstSummary')}</Text>
-              <div style={{ marginTop: 4 }}>
+      {gstData.periods.length > 0 && (gstData.totalTaxable || 0) > 0 && (
+        <Card className="summary-footer-card" size="small" style={{ marginTop: 20 }}>
+          <Row align="middle" gutter={16}>
+            <Col>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <AuditOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+            </Col>
+            <Col flex="auto">
+              <Text strong style={{ fontSize: 15 }}>{t('report.gstSummary')}</Text>
+              <div style={{ marginTop: 6, display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13 }}>
                 <Text type="secondary">
-                  {`${t('report.period')}: ${gstPeriods.start} ${t('common.date')} ${gstPeriods.end}`} |
-                  {`${t('report.taxableValue')}: ₹${gstData.totalTaxable.toFixed(2)}`} |
-                  {`${t('report.cgst')}: ₹${gstData.totalCgst.toFixed(2)}`} |
-                  {`${t('report.sgst')}: ₹${gstData.totalSgst.toFixed(2)}`} |
-                  {`${t('report.totalGst')}: ₹${(gstData.totalCgst + gstData.totalSgst).toFixed(2)}`}
+                  {t('report.period')}: <Text strong>{gstPeriods.start}</Text> - <Text strong>{gstPeriods.end}</Text>
+                </Text>
+                <Text type="secondary">
+                  {t('report.taxableValue')}: <Text strong style={{ color: '#6366f1' }}>₹{(gstData.totalTaxable || 0).toFixed(2)}</Text>
+                </Text>
+                <Text type="secondary">
+                  CGST: <Text strong style={{ color: '#722ed1' }}>₹{(gstData.totalCgst || 0).toFixed(2)}</Text>
+                </Text>
+                <Text type="secondary">
+                  SGST: <Text strong style={{ color: '#13c2c2' }}>₹{(gstData.totalSgst || 0).toFixed(2)}</Text>
+                </Text>
+                <Text type="secondary">
+                  {t('report.totalGst')}: <Text strong style={{ color: '#faad14' }}>₹{((gstData.totalCgst || 0) + (gstData.totalSgst || 0)).toFixed(2)}</Text>
                 </Text>
               </div>
-            </div>
-          </Space>
+            </Col>
+          </Row>
         </Card>
       )}
     </>
   );
 
   return (
-    <div>
-      <Row style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('report.title')}</Title>
-          <Text type="secondary">{t('report.overview')}</Text>
-        </Col>
-      </Row>
-      <Card styles={{ body: { padding: '16px 20px' } }}>
-        <Tabs activeKey={tab} onChange={setTab} items={[
-          { key: 'overview', label: <Space><RiseOutlined />{t('report.overview')}</Space>, children: overviewContent },
-          { key: 'gst', label: <Space><AuditOutlined />{t('report.gstReport')}</Space>, children: gstContent },
-        ]} />
+    <div style={{ padding: '2px 0' }}>
+      <div style={{ marginBottom: 24 }}>
+        <Row align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <BarChartOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('report.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{t('report.subtitle')}</Text>
+              </div>
+            </Space>
+          </Col>
+        </Row>
+      </div>
+
+      <Card
+        className="report-tab-card chart-card"
+        styles={{ body: { padding: '0 20px 20px 20px' } }}
+        style={{ borderRadius: 12, overflow: 'hidden' }}
+      >
+        <Tabs
+          activeKey={tab}
+          onChange={setTab}
+          items={[
+            { key: 'overview', label: <Space><RiseOutlined />{t('report.overview')}</Space>, children: overviewContent },
+            { key: 'gst', label: <Space><AuditOutlined />{t('report.gstReport')}</Space>, children: gstContent },
+          ]}
+        />
       </Card>
     </div>
   );

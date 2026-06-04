@@ -7,7 +7,7 @@ import {
   SearchOutlined, DeleteOutlined, ClockCircleOutlined,
   FileTextOutlined, ShoppingCartOutlined, UserOutlined, DollarOutlined,
   WalletOutlined, SettingOutlined, AuditOutlined, WarningOutlined,
-  DeleteFilled, ReloadOutlined
+  DeleteFilled, ReloadOutlined, HistoryOutlined
 } from '@ant-design/icons';
 import { getActivityLog, clearActivityLog } from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -118,21 +118,30 @@ export default function ActivityLog() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('activity.title')}</Title>
-          <Text type="secondary">{t('activity.title')}</Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={handleRefresh}>{t('common.refresh')}</Button>
-            <Popconfirm title={t('activity.clearLog')} description={t('msg.noUndo')}
-              onConfirm={handleClear}>
-              <Button danger icon={<DeleteOutlined />}>{t('activity.clearLog')}</Button>
-            </Popconfirm>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+                <HistoryOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('activity.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{t('activity.title')}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={handleRefresh}>{t('common.refresh')}</Button>
+              <Popconfirm title={t('activity.clearLog')} description={t('msg.noUndo')}
+                onConfirm={handleClear}>
+                <Button danger icon={<DeleteOutlined />}>{t('activity.clearLog')}</Button>
+              </Popconfirm>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>

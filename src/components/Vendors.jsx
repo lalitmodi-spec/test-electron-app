@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Card, Button, Input, InputNumber, Select, Space, Modal, Form, Typography,
+  Table, Card, Button, Input, InputNumber, Select, Space, Drawer, Form, Typography,
   Row, Col, Popconfirm, message, Tag, Tooltip, Statistic, Descriptions
 } from 'antd';
 import {
@@ -158,15 +158,24 @@ export default function Vendors() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>{t('vendor.title')}</Title>
-          <Text type="secondary">{vendors.length} {t('vendor.title').toLowerCase()}</Text>
-        </Col>
-        <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('vendor.addTitle')}</Button>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 24 }}>
+        <Row justify="space-between" align="middle" gutter={[12, 12]}>
+          <Col>
+            <Space align="center" size={14}>
+              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #eb2f96, #f06292)' }}>
+                <TeamOutlined style={{ color: '#fff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('vendor.title')}</Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>{vendors.length} {t('vendor.title').toLowerCase()}</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('vendor.addTitle')}</Button>
+          </Col>
+        </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
@@ -212,14 +221,19 @@ export default function Vendors() {
           scroll={{ x: 700 }} locale={{ emptyText: t('msg.noData') }} />
       </Card>
 
-      <Modal
+      <Drawer
         title={edit ? t('vendor.editTitle') : t('vendor.addTitle')}
         open={showForm}
-        onCancel={() => setShowForm(false)}
-        onOk={handleSave}
-        okText={edit ? t('common.update') : t('common.save')}
-        width={550}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        width={520}
         destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>{edit ? t('common.update') : t('common.save')}</Button>
+          </Space>
+        }
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>
@@ -327,14 +341,14 @@ export default function Vendors() {
             <Input.TextArea rows={2} placeholder={t('placeholder.notes')} />
           </Form.Item>
         </Form>
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         title={<Space><UserOutlined style={{ color: '#6366f1' }} />{detailVendor?.name}</Space>}
         open={!!detailVendor}
-        onCancel={() => { setDetailVendor(null); setDetailData(null); }}
-        width={600}
-        footer={null}
+        onClose={() => { setDetailVendor(null); setDetailData(null); }}
+        placement="right"
+        width={520}
       >
         {detailVendor && (
           <div>
@@ -377,7 +391,7 @@ export default function Vendors() {
             )}
           </div>
         )}
-      </Modal>
+      </Drawer>
     </div>
   );
 }
