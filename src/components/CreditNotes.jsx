@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
-import { Table, Card, Button, Input, Select, Space, Drawer, Form, Typography, Row, Col, Popconfirm, message, Tag, Tooltip, DatePicker, InputNumber } from 'antd';
+import { Table, Card, Button, Input, Select, Space, Drawer, Form, Typography, Row, Col, Popconfirm, message, Tag, Tooltip, DatePicker, InputNumber, Statistic } from 'antd';
 import { PlusOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import db, { logActivity, createCreditNote } from '../db';
@@ -115,7 +115,7 @@ export default function CreditNotes() {
     },
     {
       title: t('creditNote.invoice'), key: 'invoice', width: 140,
-      render: (_, r) => r.invoiceId ? <Text style={{ color: '#6366f1' }}>{invMap[r.invoiceId]?.invoiceNo || `#${r.invoiceId}`}</Text> : '-',
+      render: (_, r) => r.invoiceId ? <Text style={{ color: 'var(--accent)' }}>{invMap[r.invoiceId]?.invoiceNo || `#${r.invoiceId}`}</Text> : '-',
     },
     {
       title: t('creditNote.amount'), dataIndex: 'total', key: 'total', align: 'right', width: 120,
@@ -139,6 +139,7 @@ export default function CreditNotes() {
   ];
 
   const totalCnAmount = filtered.reduce((s, cn) => s + Number(cn.total), 0);
+  const cnCount = filtered.length;
 
   return (
     <div>
@@ -146,12 +147,12 @@ export default function CreditNotes() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #722ed1, #9254de)' }}>
+              <div className="gradient-icon">
                 <SwapOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
                 <Title level={4} style={{ margin: 0, fontSize: 22 }}>{t('creditNote.title')}</Title>
-                <Text type="secondary" style={{ fontSize: 13 }}>{creditNotes.length} {t('common.total')} | ₹{totalCnAmount.toFixed(2)} {t('creditNote.issued')}</Text>
+                <Text type="secondary" style={{ fontSize: 13 }}>{cnCount} {t('common.total')}</Text>
               </div>
             </Space>
           </Col>
@@ -160,6 +161,20 @@ export default function CreditNotes() {
           </Col>
         </Row>
       </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12}>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #722ed1' } }}>
+            <Statistic title={t('common.total')} value={cnCount} valueStyle={{ color: '#722ed1' }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #ff4d4f' } }}>
+            <Statistic title={t('creditNote.amount')} value={totalCnAmount} precision={2} prefix="₹"
+              valueStyle={{ color: '#ff4d4f' }} />
+          </Card>
+        </Col>
+      </Row>
 
       <Card styles={{ body: { padding: 0 } }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
@@ -172,7 +187,7 @@ export default function CreditNotes() {
         </div>
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('creditNote.title')}` }}
-          scroll={{ x: 800 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 800 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><SwapOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>
 
       <Drawer title={t('creditNote.newTitle')} open={showForm} onClose={() => setShowForm(false)}

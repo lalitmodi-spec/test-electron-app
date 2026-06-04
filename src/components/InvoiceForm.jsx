@@ -320,7 +320,7 @@ export default function InvoiceForm() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <FileTextOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -481,7 +481,7 @@ export default function InvoiceForm() {
 
           <Row justify="end">
             <Col xs={24} sm={14} md={8}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 18px', background: 'rgba(99,102,241,0.03)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 18px', background: 'rgba(var(--accent-rgb), 0.03)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
                 <Row justify="space-between"><Text type="secondary">{t('invoice.subtotal')}</Text><Text>₹{totals.subtotal.toFixed(2)}</Text></Row>
                 <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')} ({(totals.subtotal > 0 ? (totals.cgst / totals.subtotal * 100).toFixed(1) : 0)}%)</Text><Text>₹{totals.cgst.toFixed(2)}</Text></Row>
                 <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')} ({(totals.subtotal > 0 ? (totals.sgst / totals.subtotal * 100).toFixed(1) : 0)}%)</Text><Text>₹{totals.sgst.toFixed(2)}</Text></Row>
@@ -493,7 +493,7 @@ export default function InvoiceForm() {
                 <Divider style={{ margin: '4px 0' }} />
                 <Row justify="space-between">
                   <Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text>
-                  <Text strong style={{ fontSize: 16, color: '#6366f1' }}>₹{totals.grandTotal.toFixed(2)}</Text>
+                  <Text strong style={{ fontSize: 16, color: 'var(--accent)' }}>₹{totals.grandTotal.toFixed(2)}</Text>
                 </Row>
               </div>
             </Col>

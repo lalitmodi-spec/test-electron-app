@@ -232,7 +232,7 @@ export default function Customers() {
       children: (
         <Table dataSource={detailData.invoices} rowKey="id" pagination={false} size="small"
           columns={[
-            { title: t('customer.invoices'), dataIndex: 'invoiceNo', key: 'invoiceNo', render: (val) => <Text strong style={{ color: '#6366f1' }}>{val}</Text> },
+            { title: t('customer.invoices'), dataIndex: 'invoiceNo', key: 'invoiceNo', render: (val) => <Text strong style={{ color: 'var(--accent)' }}>{val}</Text> },
             { title: t('common.date'), dataIndex: 'date', key: 'date', width: 100 },
             {
               title: t('common.amount'), dataIndex: 'grandTotal', key: 'grandTotal', align: 'right', width: 110,
@@ -267,7 +267,7 @@ export default function Customers() {
         <Table dataSource={detailData.payments} rowKey="id" pagination={false} size="small"
           columns={[
             { title: t('common.date'), dataIndex: 'date', key: 'date', width: 100 },
-            { title: t('customer.invoices'), dataIndex: 'invoiceNo', key: 'invoiceNo', render: (val) => <Text strong style={{ color: '#6366f1' }}>{val}</Text> },
+            { title: t('customer.invoices'), dataIndex: 'invoiceNo', key: 'invoiceNo', render: (val) => <Text strong style={{ color: 'var(--accent)' }}>{val}</Text> },
             {
               title: t('common.amount'), dataIndex: 'amount', key: 'amount', align: 'right', width: 110,
               render: (v) => <Text strong style={{ color: '#52c41a' }}>₹{Number(v).toFixed(2)}</Text>,
@@ -287,7 +287,7 @@ export default function Customers() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)' }}>
+              <div className="gradient-icon">
                 <TeamOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -304,8 +304,8 @@ export default function Customers() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
-            <Statistic title={t('customer.totalCustomers')} value={customers.length} prefix={<WalletOutlined />} valueStyle={{ color: '#6366f1' }} />
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid var(--accent)' } }}>
+            <Statistic title={t('customer.totalCustomers')} value={customers.length} prefix={<WalletOutlined />} valueStyle={{ color: 'var(--accent)' }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
@@ -333,7 +333,7 @@ export default function Customers() {
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('customer.title').toLowerCase()}` }}
-          scroll={{ x: 800 }} locale={{ emptyText: t('msg.noData') }}
+          scroll={{ x: 800 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><TeamOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }}
           expandable={{
             expandedRowRender: (r) => (
               <div style={{ padding: 8 }}>
@@ -421,9 +421,9 @@ export default function Customers() {
 
             <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
               <Col xs={8}>
-                <Card size="small" style={{ textAlign: 'center', background: 'rgba(99,102,241,0.08)' }}>
-                  <RiseOutlined style={{ color: '#6366f1', fontSize: 18 }} />
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#6366f1', marginTop: 4 }}>
+                <Card size="small" style={{ textAlign: 'center', background: 'rgba(var(--accent-rgb), 0.08)' }}>
+                  <RiseOutlined style={{ color: 'var(--accent)', fontSize: 18 }} />
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent)', marginTop: 4 }}>
                     ₹{detailData.summary.totalBilled.toFixed(2)}
                   </div>
                   <Text type="secondary" style={{ fontSize: 11 }}>{t('customer.totalBilled')}</Text>

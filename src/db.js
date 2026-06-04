@@ -2,6 +2,22 @@ import Dexie from 'dexie';
 
 const db = new Dexie('BillingApp');
 
+db.version(10).stores({
+  customers: '++id, name, phone, gstin, email, createdAt',
+  products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
+  invoices: '++id, invoiceNo, customerId, customerName, date, status, paymentMethod, createdAt',
+  payments: '++id, invoiceId, amount, method, date, reference, note, createdAt',
+  creditNotes: '++id, cnNo, invoiceId, customerId, customerName, date, status, createdAt',
+  expenses: '++id, title, category, amount, date, items, createdAt',
+  purchases: '++id, productId, productName, vendorId, date, supplier, createdAt',
+  vendors: '++id, name, company, phone, email, gstin, address, createdAt',
+  quotations: '++id, quotationNo, customerId, customerName, date, status, createdAt',
+  activity: '++id, type, message, timestamp',
+  settings: '++id, key',
+  counters: '++id, key',
+  backups: '++id, createdAt',
+});
+
 db.version(9).stores({
   customers: '++id, name, phone, gstin, email, createdAt',
   products: '++id, name, hsn, taxRate, price, stock, minStock, unit, createdAt',
@@ -108,6 +124,7 @@ const defaultSettings = {
   reminderDaysBefore: 3,
   reminderNote: 'Dear {{customer}},\n\nThis is a friendly reminder that invoice {{invoiceNo}} of ₹{{amount}} is due on {{dueDate}}.\n\nPlease arrange payment at your earliest convenience.\n\nThank you,\n{{businessName}}',
   theme: 'dark',
+  themeColor: '#6366f1',
   invoiceTemplate: 'modern',
   invoicePrefix: 'INV',
   invoiceSeparator: '-',
@@ -548,6 +565,68 @@ export async function getActivityLog({ type, search, limit = 50, offset = 0 } = 
 export async function clearActivityLog() {
   await db.activity.clear();
   await logActivity('system', 'Activity log cleared');
+}
+
+// ---- Backup & Restore ----
+
+export async function backupAllData() {
+  const data = {
+    customers: await db.customers.toArray(),
+    products: await db.products.toArray(),
+    invoices: await db.invoices.toArray(),
+    payments: await db.payments?.toArray(),
+    creditNotes: await db.creditNotes.toArray(),
+    expenses: await db.expenses.toArray(),
+    purchases: await db.purchases.toArray(),
+    vendors: await db.vendors.toArray(),
+    quotations: await db.quotations.toArray(),
+    settings: await db.settings.toArray(),
+    counters: await db.counters.toArray(),
+    activity: await db.activity.toArray(),
+    exportedAt: new Date().toISOString(),
+  };
+  return data;
+}
+
+export async function restoreAllData(data) {
+  if (!data || typeof data !== 'object') throw new Error('Invalid backup data');
+
+  await db.customers.clear();
+  await db.products.clear();
+  await db.invoices.clear();
+  await db.payments?.clear();
+  await db.creditNotes.clear();
+  await db.expenses.clear();
+  await db.purchases.clear();
+  await db.vendors.clear();
+  await db.quotations.clear();
+  await db.settings.clear();
+  await db.counters.clear();
+  await db.activity.clear();
+
+  const tables = ['customers', 'products', 'invoices', 'payments', 'creditNotes',
+    'expenses', 'purchases', 'vendors', 'quotations', 'settings', 'counters', 'activity'];
+  for (const table of tables) {
+    if (data[table]?.length) {
+      await db[table].bulkAdd(data[table]);
+    }
+  }
+  await logActivity('backup', `Data restored from backup (${data.exportedAt || 'unknown date'})`);
+}
+
+export async function saveBackupRecord(record) {
+  return db.backups.add({
+    ...record,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export async function getBackupHistory() {
+  return db.backups.orderBy('createdAt').reverse().toArray();
+}
+
+export async function deleteBackupRecord(id) {
+  await db.backups.delete(id);
 }
 
 export default db;

@@ -162,7 +162,7 @@ export default function Vendors() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #eb2f96, #f06292)' }}>
+              <div className="gradient-icon">
                 <TeamOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -179,11 +179,11 @@ export default function Vendors() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid var(--accent)' } }}>
             <Statistic
-              title={<Space size={4}><UserOutlined style={{ color: '#6366f1' }} />{t('vendor.totalVendors')}</Space>}
+              title={<Space size={4}><UserOutlined style={{ color: 'var(--accent)' }} />{t('vendor.totalVendors')}</Space>}
               value={vendors.length}
-              valueStyle={{ color: '#6366f1', fontSize: 22 }}
+              valueStyle={{ color: 'var(--accent)', fontSize: 22 }}
             />
           </Card>
         </Col>
@@ -218,7 +218,7 @@ export default function Vendors() {
         </div>
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('vendor.title').toLowerCase()}` }}
-          scroll={{ x: 700 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 700 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><UserOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>
 
       <Drawer
@@ -317,7 +317,7 @@ export default function Vendors() {
               </Form.Item>
             </Col>
           </Row>
-          <div style={{ background: 'rgba(99,102,241,0.05)', borderRadius: 8, padding: 12, margin: '8px 0' }}>
+          <div style={{ background: 'rgba(var(--accent-rgb), 0.05)', borderRadius: 8, padding: 12, margin: '8px 0' }}>
             <Text strong style={{ display: 'block', marginBottom: 8 }}>{t('common.notes')}</Text>
             <Row gutter={16}>
               <Col span={8}>
@@ -344,7 +344,7 @@ export default function Vendors() {
       </Drawer>
 
       <Drawer
-        title={<Space><UserOutlined style={{ color: '#6366f1' }} />{detailVendor?.name}</Space>}
+        title={<Space><UserOutlined style={{ color: 'var(--accent)' }} />{detailVendor?.name}</Space>}
         open={!!detailVendor}
         onClose={() => { setDetailVendor(null); setDetailData(null); }}
         placement="right"
@@ -371,11 +371,11 @@ export default function Vendors() {
             </Descriptions>
 
             {detailData && (
-              <div style={{ background: 'rgba(99,102,241,0.05)', borderRadius: 10, padding: 16 }}>
+              <div style={{ background: 'rgba(var(--accent-rgb), 0.05)', borderRadius: 10, padding: 16 }}>
                 <Title level={5} style={{ margin: '0 0 12px' }}>{t('vendor.purchaseSummary')}</Title>
                 <Row gutter={16}>
                   <Col span={8} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#6366f1' }}>₹{detailData.totalCost.toFixed(2)}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)' }}>₹{detailData.totalCost.toFixed(2)}</div>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t('vendor.totalPurchases')}</Text>
                   </Col>
                   <Col span={8} style={{ textAlign: 'center' }}>

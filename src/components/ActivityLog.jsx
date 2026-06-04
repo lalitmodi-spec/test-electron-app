@@ -122,7 +122,7 @@ export default function ActivityLog() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <HistoryOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -145,11 +145,11 @@ export default function ActivityLog() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={8}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid var(--accent)' } }}>
             <Statistic
-              title={<Space size={4}><ClockCircleOutlined style={{ color: '#6366f1' }} />{t('activity.total')}</Space>}
+              title={<Space size={4}><ClockCircleOutlined style={{ color: 'var(--accent)' }} />{t('activity.total')}</Space>}
               value={total}
-              valueStyle={{ color: '#6366f1', fontSize: 22 }}
+              valueStyle={{ color: 'var(--accent)', fontSize: 22 }}
             />
           </Card>
         </Col>
@@ -203,7 +203,7 @@ export default function ActivityLog() {
             showTotal: (totalCount) => `${totalCount} ${t('activity.total').toLowerCase()}`,
             showSizeChanger: false,
           }}
-          scroll={{ x: 600 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 600 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><HistoryOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>
     </div>
   );

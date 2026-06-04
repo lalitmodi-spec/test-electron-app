@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons';
-import db, { getSettings, updateSetting, logActivity } from '../db';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal, Table, Tooltip } from 'antd';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined } from '@ant-design/icons';
+import db, { getSettings, updateSetting, logActivity, backupAllData, saveBackupRecord, restoreAllData, getBackupHistory, deleteBackupRecord } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -122,6 +122,12 @@ export default function Settings() {
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [pinForm] = Form.useForm();
+  const [backupHistory, setBackupHistory] = useState([]);
+  const [backupRestoring, setBackupRestoring] = useState(false);
+
+  useEffect(() => {
+    getBackupHistory().then(setBackupHistory);
+  }, []);
 
   async function handleClearData() {
     if (clearConfirmText !== 'DELETE') {
@@ -137,6 +143,37 @@ export default function Settings() {
     message.success(t('msg.dataCleared'));
     setClearModalOpen(false);
     setClearConfirmText('');
+  }
+
+  async function handleCreateBackup() {
+    if (!window.electronAPI) return message.info(t('common.export'));
+    const result = await window.electronAPI.backupData();
+    if (!result.success) return;
+    const data = await backupAllData();
+    const totalRecords = (data.customers?.length || 0) + (data.products?.length || 0) +
+      (data.invoices?.length || 0) + (data.expenses?.length || 0) + (data.payments?.length || 0) +
+      (data.creditNotes?.length || 0) + (data.purchases?.length || 0) + (data.vendors?.length || 0) +
+      (data.quotations?.length || 0);
+    await window.electronAPI.saveBackupFile({ filePath: result.filePath, data });
+    const filename = result.filePath.split('/').pop().split('\\').pop();
+    const recordId = await saveBackupRecord({ filename, totalRecords, filePath: result.filePath });
+    await logActivity('backup', `Backup created: ${filename} (${totalRecords} records)`);
+    setBackupHistory(prev => [{ id: recordId, filename, totalRecords, filePath: result.filePath, createdAt: new Date().toISOString() }, ...prev]);
+    message.success(t('msg.backupCreated'));
+  }
+
+  async function handleRestoreBackup() {
+    if (!window.electronAPI) return message.info(t('common.import'));
+    setBackupRestoring(true);
+    try {
+      const result = await window.electronAPI.restoreBackup();
+      if (!result.success) return;
+      await restoreAllData(result.data);
+      await logActivity('backup', 'Data restored from backup');
+      message.success(t('msg.backupRestored'));
+    } finally {
+      setBackupRestoring(false);
+    }
   }
 
   async function handleSavePin() {
@@ -373,7 +410,7 @@ export default function Settings() {
               border: '1px solid #2a3444'
             }}>
               <Space style={{ marginBottom: 16 }}>
-                <FilePdfOutlined style={{ color: '#6366f1', fontSize: 18 }} />
+                <FilePdfOutlined style={{ color: 'var(--accent)', fontSize: 18 }} />
                 <Text strong style={{ fontSize: 15 }}>{t('settings.templatePreview')}</Text>
               </Space>
               <Row gutter={12}>
@@ -457,6 +494,37 @@ export default function Settings() {
               </Select>
             </Form.Item>
           </Col>
+          <Col span={24}>
+            <Divider style={{ margin: '4px 0' }} />
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.accentColor')}</Text>
+            <Form.Item name="themeColor" label={t('settings.accentColor')} style={{ marginBottom: 8 }}>
+              <Space wrap>
+                {['#6366f1', '#2563eb', '#16a34a', '#0d9488', '#9333ea', '#db2777',
+                  '#dc2626', '#ea580c', '#d97706', '#0891b2'].map(color => (
+                  <Tooltip key={color} title={color}>
+                    <div onClick={() => {
+                      form.setFieldsValue({ themeColor: color });
+                      if (window.applyAccent) window.applyAccent(color);
+                    }}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+                        background: color, border: '2px solid transparent',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.2s',
+                      }}>
+                    </div>
+                  </Tooltip>
+                ))}
+                <Input type="color" value={form.getFieldValue('themeColor') || '#6366f1'}
+                  onChange={e => {
+                    form.setFieldsValue({ themeColor: e.target.value });
+                    if (window.applyAccent) window.applyAccent(e.target.value);
+                  }}
+                  style={{ width: 40, height: 32, padding: 0, border: 'none', cursor: 'pointer' }} />
+              </Space>
+            </Form.Item>
+            <Text type="secondary" style={{ fontSize: 12 }}>{t('settings.accentColorDesc')}</Text>
+          </Col>
         </Row>
       ),
     },
@@ -472,9 +540,9 @@ export default function Settings() {
           <Card styles={{
             body: {
               padding: '24px 28px',
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.08) 100%)',
+              background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.05) 0%, rgba(139,92,246,0.08) 100%)',
               borderRadius: 12,
-              border: '1px solid rgba(99,102,241,0.15)',
+              border: '1px solid rgba(var(--accent-rgb), 0.15)',
             }
           }}>
             <Row gutter={[20, 20]} align="middle">
@@ -483,7 +551,7 @@ export default function Settings() {
                   <Space>
                     <div style={{
                       width: 40, height: 40, borderRadius: 12,
-                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                      background: 'var(--accent-gradient)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <LockOutlined style={{ fontSize: 18, color: 'white' }} />
@@ -528,6 +596,40 @@ export default function Settings() {
         </div>
       ),
     },
+    {
+      key: 'backup',
+      label: t('settings.backupRestore'),
+      children: (
+        <div>
+          <Alert message={t('settings.backupRestore')}
+            description={t('settings.dataManagementDesc')}
+            type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }} />
+          <Space wrap style={{ marginBottom: 24 }}>
+            <Button icon={<CloudDownloadOutlined />} onClick={handleCreateBackup}>{t('settings.backupCreate')}</Button>
+            <Button icon={<CloudUploadOutlined />} onClick={handleRestoreBackup} disabled={backupRestoring}
+              loading={backupRestoring}>{t('settings.backupRestoreBtn')}</Button>
+          </Space>
+          <Divider />
+          <Text strong style={{ display: 'block', marginBottom: 12 }}>
+            <HistoryOutlined style={{ marginRight: 8 }} />{t('settings.backupHistory')}
+          </Text>
+          <Table
+            dataSource={backupHistory}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            locale={{ emptyText: t('settings.backupNoData') }}
+            columns={[
+              { title: t('settings.backupDate'), dataIndex: 'createdAt', key: 'createdAt',
+                render: v => new Date(v).toLocaleString() },
+              { title: t('settings.backupFile'), dataIndex: 'filename', key: 'filename' },
+              { title: t('settings.backupRecords'), dataIndex: 'totalRecords', key: 'totalRecords',
+                render: v => v ?? '-' },
+            ]}
+          />
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -536,7 +638,7 @@ export default function Settings() {
         <Row align="middle" gutter={[12, 12]}>
           <Col flex="auto">
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <SettingOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>

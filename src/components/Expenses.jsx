@@ -161,7 +161,7 @@ export default function Expenses() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #fa8c16, #ffa940)' }}>
+              <div className="gradient-icon">
                 <WalletOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -188,7 +188,7 @@ export default function Expenses() {
         </Col>
         {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, amt]) => (
           <Col xs={24} sm={12} md={6} key={cat}>
-            <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
+            <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid var(--accent)' } }}>
               <Text type="secondary">{cat}</Text>
               <div><Title level={4} style={{ margin: 0 }}>₹{amt.toFixed(2)}</Title></div>
             </Card>
@@ -213,7 +213,7 @@ export default function Expenses() {
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('expense.title')}` }}
-          scroll={{ x: 600 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 600 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><WalletOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>
 
       <Drawer

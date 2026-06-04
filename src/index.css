@@ -6,6 +6,10 @@
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --border-color: #e2e8f0;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --accent-rgb: 99, 102, 241;
+  --accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-light));
 }
 
 .dark {
@@ -35,6 +39,9 @@ body {
 
 @media print {
   .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .dark body { background: #fff !important; }
+  .ant-drawer { display: none !important; }
 }
 
 .ant-table-wrapper {
@@ -147,8 +154,8 @@ body {
 }
 
 .dark .ant-btn-default:hover {
-  border-color: #6366f1 !important;
-  color: #818cf8 !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-light) !important;
 }
 
 .dark .ant-segmented {
@@ -160,7 +167,7 @@ body {
 }
 
 .dark .ant-segmented-item-selected {
-  background: #6366f1 !important;
+  background: var(--accent) !important;
   color: #fff !important;
 }
 
@@ -182,8 +189,8 @@ body {
 }
 
 .dark .ant-alert-info {
-  background: rgba(99,102,241,0.1) !important;
-  border-color: rgba(99,102,241,0.3) !important;
+  background: rgba(var(--accent-rgb), 0.1) !important;
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
 }
 
 .dark .ant-list-item {
@@ -221,7 +228,7 @@ body {
 }
 .stat-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 12px 40px rgba(var(--accent-rgb), 0.12) !important;
 }
 .dark .stat-card:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
@@ -231,7 +238,7 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 .chart-card:hover {
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.08) !important;
+  box-shadow: 0 8px 30px rgba(var(--accent-rgb), 0.08) !important;
 }
 .dark .chart-card:hover {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3) !important;
@@ -245,6 +252,7 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: var(--accent-gradient) !important;
 }
 
 .dashboard-section {
@@ -303,10 +311,10 @@ body {
 
 .summary-footer-card {
   border-radius: 12px !important;
-  border: 1px solid rgba(99, 102, 241, 0.2) !important;
-  background: rgba(99, 102, 241, 0.04) !important;
+  border: 1px solid rgba(var(--accent-rgb), 0.2) !important;
+  background: rgba(var(--accent-rgb), 0.04) !important;
 }
 .dark .summary-footer-card {
-  background: rgba(99, 102, 241, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.15) !important;
+  background: rgba(var(--accent-rgb), 0.08) !important;
+  border-color: rgba(var(--accent-rgb), 0.15) !important;
 }

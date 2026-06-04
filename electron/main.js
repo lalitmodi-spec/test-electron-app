@@ -123,6 +123,30 @@ ipcMain.handle("save-export", async (event, { filePath, data }) => {
     return { success: true };
 });
 
+ipcMain.handle("backup-data", async () => {
+    const { canceled, filePath } = await dialog.showSaveDialog({
+        defaultPath: `full-backup-${Date.now()}.json`,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (canceled || !filePath) return { success: false };
+    return { success: true, filePath };
+});
+
+ipcMain.handle("save-backup-file", async (event, { filePath, data }) => {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+    return { success: true };
+});
+
+ipcMain.handle("restore-backup", async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        filters: [{ name: "JSON", extensions: ["json"] }],
+        properties: ["openFile"],
+    });
+    if (canceled || filePaths.length === 0) return { success: false };
+    const content = fs.readFileSync(filePaths[0], "utf-8");
+    return { success: true, data: JSON.parse(content) };
+});
+
 ipcMain.handle("import-data", async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
         filters: [{ name: "JSON", extensions: ["json"] }],

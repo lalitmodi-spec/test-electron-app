@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Input, Drawer, theme, ConfigProvider } from 'antd';
+import { Layout, Menu, Button, Input, Drawer, theme, ConfigProvider, Badge } from 'antd';
 import {
   DashboardOutlined, FileTextOutlined, PlusOutlined, UserOutlined,
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { getSettings } from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
+import CommandPalette from './CommandPalette';
 
 const { Sider, Header, Content } = Layout;
 
@@ -53,7 +54,22 @@ export default function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [maximized, setMaximized] = useState(false);
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+  const cmdPaletteRef = useRef(false);
+  const [overdueCount, setOverdueCount] = useState(0);
   const { t, lang, setLang, isHindi } = useLanguage();
+
+  function applyAccent(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    document.documentElement.style.setProperty('--accent', hex);
+    document.documentElement.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+    const light = (c) => Math.min(255, c + 60).toString(16).padStart(2, '0');
+    document.documentElement.style.setProperty('--accent-light', `#${light(r)}${light(g)}${light(b)}`);
+  }
+
+  useEffect(() => { cmdPaletteRef.current = cmdPaletteOpen; }, [cmdPaletteOpen]);
 
   useEffect(() => {
     if (window.electronAPI?.isMaximized) {
@@ -62,12 +78,57 @@ export default function AppLayout() {
   }, []);
 
   useEffect(() => {
-    getSettings().then(s => { if (s.theme) setThemeMode(s.theme); });
+    window.applyAccent = applyAccent;
+    getSettings().then(s => {
+      if (s.theme) setThemeMode(s.theme);
+      const color = s.themeColor || '#6366f1';
+      applyAccent(color);
+    });
+    return () => { delete window.applyAccent; };
   }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
   }, [themeMode]);
+
+  useEffect(() => {
+    function handleKeydown(e) {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'n' && !e.shiftKey) {
+          e.preventDefault();
+          navigate('/invoice/new');
+        }
+        if (e.key === 'k') {
+          e.preventDefault();
+          if (!cmdPaletteRef.current) setCmdPaletteOpen(true);
+        }
+      }
+      if (e.key === 'Escape') {
+        setCmdPaletteOpen(false);
+      }
+    }
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkOverdue() {
+      const invoices = await db.invoices.toArray();
+      if (cancelled) return;
+      const today = new Date().toISOString().split('T')[0];
+      const overdue = invoices.filter(i => i.status !== 'paid' && i.dueDate && i.dueDate < today);
+      setOverdueCount(overdue.length);
+      if (overdue.length > 0) {
+        document.title = `(${overdue.length}) BillingPro`;
+      } else {
+        document.title = 'BillingPro';
+      }
+    }
+    checkOverdue();
+    const interval = setInterval(checkOverdue, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
@@ -132,7 +193,7 @@ export default function AppLayout() {
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{
           width: 34, height: 34, borderRadius: 10,
-          background: 'linear-gradient(135deg, #6366f1, #a78bfa)',
+          background: 'var(--accent-gradient)',
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <AuditOutlined style={{ color: 'white', fontSize: 16 }} />
@@ -208,6 +269,8 @@ export default function AppLayout() {
               prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
               placeholder={t('header.searchPlaceholder')}
               style={{ maxWidth: 320, background: 'var(--bg-body)', border: 'none', borderRadius: 8 }}
+              suffix={<span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, background: 'var(--border-color)', padding: '0 6px', borderRadius: 4, lineHeight: '18px' }}>Ctrl+K</span>}
+              onClick={() => setCmdPaletteOpen(true)}
               onPressEnter={(e) => {
                 const q = e.target.value.trim().toLowerCase();
                 if (q) navigate(`/invoices?search=${encodeURIComponent(q)}`);
@@ -263,6 +326,7 @@ export default function AppLayout() {
           </Drawer>
         )}
       </Layout>
+      <CommandPalette open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
     </ConfigProvider>
   );
 }

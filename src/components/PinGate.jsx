@@ -12,7 +12,7 @@ function Dot({ filled }) {
   return (
     <span style={{
       display: 'inline-block', width: 12, height: 12, borderRadius: '50%',
-      background: filled ? '#6366f1' : 'rgba(255,255,255,0.15)',
+      background: filled ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
       border: filled ? 'none' : '2px solid rgba(255,255,255,0.2)',
       transition: 'all 0.15s',
       margin: '0 5px',
@@ -66,7 +66,7 @@ export default function PinGate({ onUnlock }) {
     },
     bgGradient: {
       position: 'absolute', inset: 0,
-      background: 'radial-gradient(ellipse at 30% 20%, rgba(99,102,241,0.12) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.08) 0%, transparent 50%)',
+      background: 'radial-gradient(ellipse at 30% 20%, rgba(var(--accent-rgb), 0.12) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.08) 0%, transparent 50%)',
     },
     card: {
       position: 'relative', zIndex: 2,
@@ -94,10 +94,10 @@ export default function PinGate({ onUnlock }) {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            background: 'var(--accent-gradient)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
-            boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
+            boxShadow: '0 8px 24px rgba(var(--accent-rgb), 0.3)',
           }}>
             <LockOutlined style={{ fontSize: 24, color: 'white' }} />
           </div>
@@ -136,7 +136,7 @@ export default function PinGate({ onUnlock }) {
                 onClick={() => handleDigit(d)}
                 onMouseDown={e => {
                   e.currentTarget.style.transform = 'scale(0.92)';
-                  e.currentTarget.style.background = 'rgba(99,102,241,0.2)';
+                  e.currentTarget.style.background = 'rgba(var(--accent-rgb), 0.2)';
                 }}
                 onMouseUp={e => {
                   e.currentTarget.style.transform = 'scale(1)';

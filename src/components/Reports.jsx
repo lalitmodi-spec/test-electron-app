@@ -216,9 +216,9 @@ export default function Reports() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #6366f1', borderRadius: 12, height: '100%' }}>
-            <div className="stat-label"><RiseOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('report.totalSales')}</div>
-            <div className="stat-value" style={{ color: '#6366f1' }}>₹{(data.summary.totalSales || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid var(--accent)', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><RiseOutlined style={{ color: 'var(--accent)', marginRight: 4 }} />{t('report.totalSales')}</div>
+            <div className="stat-value" style={{ color: 'var(--accent)' }}>₹{(data.summary.totalSales || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -249,7 +249,7 @@ export default function Reports() {
             styles={{ body: { padding: '20px 20px' } }}
             title={
               <Space>
-                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                <div className="gradient-icon" style={{ width: 28, height: 28, borderRadius: 6 }}>
                   <BarChartOutlined style={{ color: '#fff', fontSize: 14 }} />
                 </div>
                 <span style={{ fontWeight: 600 }}>{t('report.salesTrend')}</span>
@@ -387,9 +387,9 @@ export default function Reports() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #6366f1', borderRadius: 12, height: '100%' }}>
-            <div className="stat-label"><AuditOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('report.taxableValue')}</div>
-            <div className="stat-value" style={{ color: '#6366f1' }}>₹{(gstData.totalTaxable || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid var(--accent)', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><AuditOutlined style={{ color: 'var(--accent)', marginRight: 4 }} />{t('report.taxableValue')}</div>
+            <div className="stat-value" style={{ color: 'var(--accent)' }}>₹{(gstData.totalTaxable || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -447,7 +447,7 @@ export default function Reports() {
             styles={{ body: { padding: 0 } }}
             title={
               <Space>
-                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                <div className="gradient-icon" style={{ width: 28, height: 28, borderRadius: 6 }}>
                   <CalendarOutlined style={{ color: '#fff', fontSize: 14 }} />
                 </div>
                 <span style={{ fontWeight: 600 }}>{t('report.gstSummary')}</span>
@@ -477,7 +477,7 @@ export default function Reports() {
         <Card className="summary-footer-card" size="small" style={{ marginTop: 20 }}>
           <Row align="middle" gutter={16}>
             <Col>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <AuditOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
             </Col>
@@ -488,7 +488,7 @@ export default function Reports() {
                   {t('report.period')}: <Text strong>{gstPeriods.start}</Text> - <Text strong>{gstPeriods.end}</Text>
                 </Text>
                 <Text type="secondary">
-                  {t('report.taxableValue')}: <Text strong style={{ color: '#6366f1' }}>₹{(gstData.totalTaxable || 0).toFixed(2)}</Text>
+                  {t('report.taxableValue')}: <Text strong style={{ color: 'var(--accent)' }}>₹{(gstData.totalTaxable || 0).toFixed(2)}</Text>
                 </Text>
                 <Text type="secondary">
                   CGST: <Text strong style={{ color: '#722ed1' }}>₹{(gstData.totalCgst || 0).toFixed(2)}</Text>
@@ -513,7 +513,7 @@ export default function Reports() {
         <Row align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <BarChartOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>

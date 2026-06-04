@@ -126,7 +126,7 @@ export default function Invoices() {
       title: t('invoice.title'), dataIndex: 'invoiceNo', key: 'invoiceNo', width: 140,
       render: (tVal, r) => (
         <Space>
-          <Text strong style={{ color: '#6366f1' }}>{tVal}</Text>
+          <Text strong style={{ color: 'var(--accent)' }}>{tVal}</Text>
           {r.poNumber && <Text type="secondary" style={{ fontSize: 10 }}>(PO: {r.poNumber})</Text>}
         </Space>
       ),
@@ -197,7 +197,7 @@ export default function Invoices() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <FileTextOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -216,9 +216,9 @@ export default function Invoices() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} sm={8}>
-          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid #6366f1', borderRadius: 12, height: '100%' }}>
-            <div className="stat-label"><DollarOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('invoice.totalValue')}</div>
-            <div className="stat-value" style={{ color: '#6366f1' }}>₹{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={{ borderLeft: '4px solid var(--accent)', borderRadius: 12, height: '100%' }}>
+            <div className="stat-label"><DollarOutlined style={{ color: 'var(--accent)', marginRight: 4 }} />{t('invoice.totalValue')}</div>
+            <div className="stat-value" style={{ color: 'var(--accent)' }}>₹{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
@@ -251,17 +251,36 @@ export default function Invoices() {
             </Col>
           </Row>
         </div>
+        <div style={{ padding: '8px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[
+            { label: 'All', value: '', color: '#6366f1' },
+            { label: 'Paid', value: 'paid', color: '#52c41a' },
+            { label: 'Unpaid', value: 'unpaid', color: '#ff4d4f' },
+            { label: 'Partial', value: 'partial', color: '#faad14' },
+            { label: 'Overdue', value: 'overdue', color: '#ff4d4f' },
+          ].map(p => (
+            <Button
+              key={p.value}
+              size="small"
+              type={statusFilter === p.value ? 'primary' : 'default'}
+              onClick={() => setStatusFilter(p.value)}
+              style={{ borderRadius: 20, fontSize: 12, ...(statusFilter === p.value ? {} : { borderColor: p.color, color: p.color }) }}
+            >
+              {p.label}
+            </Button>
+          ))}
+        </div>
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (total) => `${total} ${t('invoice.title').toLowerCase()}` }}
-          scroll={{ x: 960 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 960 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><FileTextOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>
 
       <Drawer
         title={
           <Row justify="space-between" align="middle" style={{ width: '100%', paddingRight: 24 }}>
             <Space>
-              <FilePdfOutlined style={{ color: '#6366f1' }} />
+              <FilePdfOutlined style={{ color: 'var(--accent)' }} />
               <Text strong style={{ fontSize: 16 }}>{view?.invoiceNo}</Text>
             </Space>
             <Tag color={view?.status === 'paid' ? 'success' : view?.status === 'partial' ? 'warning' : 'error'} style={{ borderRadius: 6, fontSize: 12, padding: '2px 10px' }}>
@@ -328,7 +347,7 @@ export default function Invoices() {
 
             <Row justify="end" style={{ marginTop: 8 }}>
               <Col xs={24} sm={18}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 16px', background: 'rgba(99,102,241,0.03)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 16px', background: 'rgba(var(--accent-rgb), 0.03)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                   <Row justify="space-between"><Text type="secondary">{t('invoice.subtotal')}</Text><Text>₹{Number(view.subtotal).toFixed(2)}</Text></Row>
                   <Row justify="space-between"><Text type="secondary">{t('invoice.cgst')} ({(Number(view.cgst) && Number(view.subtotal) ? (Number(view.cgst) / Number(view.subtotal) * 100).toFixed(1) : 0)}%)</Text><Text>₹{Number(view.cgst).toFixed(2)}</Text></Row>
                   <Row justify="space-between"><Text type="secondary">{t('invoice.sgst')} ({(Number(view.sgst) && Number(view.subtotal) ? (Number(view.sgst) / Number(view.subtotal) * 100).toFixed(1) : 0)}%)</Text><Text>₹{Number(view.sgst).toFixed(2)}</Text></Row>
@@ -336,7 +355,7 @@ export default function Invoices() {
                     <Row justify="space-between"><Text type="secondary">{t('invoice.discount')}</Text><Text type="danger">-₹{Number(view.discount).toFixed(2)}</Text></Row>
                   )}
                   <Divider style={{ margin: '4px 0' }} />
-                  <Row justify="space-between"><Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text><Text strong style={{ fontSize: 16, color: '#6366f1' }}>₹{Number(view.grandTotal).toFixed(2)}</Text></Row>
+                  <Row justify="space-between"><Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text>                  <Text strong style={{ fontSize: 16, color: 'var(--accent)' }}>₹{Number(view.grandTotal).toFixed(2)}</Text></Row>
                   <Divider style={{ margin: '4px 0' }} />
                   <Row justify="space-between"><Text type="secondary">{t('common.paid')}</Text><Text style={{ color: '#52c41a', fontWeight: 600 }}>₹{Number(view._paid).toFixed(2)}</Text></Row>
                   {view._paid < view.grandTotal && (

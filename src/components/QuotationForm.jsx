@@ -461,7 +461,7 @@ export default function QuotationForm() {
                 <Divider style={{ margin: '4px 0' }} />
                 <Row justify="space-between">
                   <Text strong style={{ fontSize: 16 }}>{t('invoice.grandTotal')}</Text>
-                  <Text strong style={{ fontSize: 16, color: '#6366f1' }}>₹{totals.grandTotal.toFixed(2)}</Text>
+                  <Text strong style={{ fontSize: 16, color: 'var(--accent)' }}>₹{totals.grandTotal.toFixed(2)}</Text>
                 </Row>
               </div>
             </Col>

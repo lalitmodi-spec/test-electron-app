@@ -208,7 +208,7 @@ export default function Products() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #eb2f96, #f06292)' }}>
+              <div className="gradient-icon">
                 <ShoppingOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -237,9 +237,9 @@ export default function Products() {
         <Col xs={24} sm={8}>
           <Card size="small" styles={{ body: { padding: '16px 20px' } }}>
             <Statistic
-              title={<Space size={4}><ShoppingOutlined style={{ color: '#6366f1' }} />{t('product.products')}</Space>}
+              title={<Space size={4}><ShoppingOutlined style={{ color: 'var(--accent)' }} />{t('product.products')}</Space>}
               value={products.length}
-              valueStyle={{ color: '#6366f1', fontSize: 22 }}
+              valueStyle={{ color: 'var(--accent)', fontSize: 22 }}
             />
           </Card>
         </Col>
@@ -282,7 +282,7 @@ export default function Products() {
 
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 15, showTotal: (total) => `${total} ${t('product.products').toLowerCase()}` }}
-          scroll={{ x: 900 }} locale={{ emptyText: t('msg.noData') }} />
+          scroll={{ x: 900 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><ShoppingOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>
 
       <Drawer
@@ -393,7 +393,7 @@ export default function Products() {
           </Space>
         }
       >
-        <div style={{ marginBottom: 16, padding: 12, background: 'rgba(99,102,241,0.06)', borderRadius: 8 }}>
+        <div style={{ marginBottom: 16, padding: 12, background: 'rgba(var(--accent-rgb), 0.06)', borderRadius: 8 }}>
           <Text type="secondary">{t('product.currentStock')}:</Text>
           <Text strong style={{ fontSize: 18, marginLeft: 8 }}>
             {Number(showStockAdjust?.stock) || 0} {showStockAdjust?.unit || 'pcs'}

@@ -176,7 +176,7 @@ export default function Purchases() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #13c2c2, #36cfc9)' }}>
+              <div className="gradient-icon">
                 <ShoppingCartOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -198,11 +198,11 @@ export default function Purchases() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={6}>
-          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid #6366f1' } }}>
+          <Card size="small" styles={{ body: { padding: '16px 20px', borderLeft: '3px solid var(--accent)' } }}>
             <Statistic
-              title={<Space size={4}><ShoppingCartOutlined style={{ color: '#6366f1' }} />{t('purchase.totalCostLabel')}</Space>}
+              title={<Space size={4}><ShoppingCartOutlined style={{ color: 'var(--accent)' }} />{t('purchase.totalCostLabel')}</Space>}
               value={totalPurchases} precision={2} prefix="₹"
-              valueStyle={{ color: '#6366f1', fontSize: 20 }}
+              valueStyle={{ color: 'var(--accent)', fontSize: 20 }}
             />
           </Card>
         </Col>
@@ -254,7 +254,7 @@ export default function Purchases() {
       </Card>
 
       <Drawer
-        title={<Space><ShoppingCartOutlined style={{ color: '#6366f1' }} />{t('purchase.recordPurchase')}</Space>}
+        title={<Space><ShoppingCartOutlined style={{ color: 'var(--accent)' }} />{t('purchase.recordPurchase')}</Space>}
         open={showForm}
         onClose={() => setShowForm(false)}
         placement="right"
@@ -386,7 +386,7 @@ export default function Purchases() {
       </Drawer>
 
       <Drawer
-        title={<Space><EyeOutlined style={{ color: '#6366f1' }} />{t('purchase.details')}</Space>}
+        title={<Space><EyeOutlined style={{ color: 'var(--accent)' }} />{t('purchase.details')}</Space>}
         open={!!showView}
         onClose={() => setShowView(null)}
         placement="right"

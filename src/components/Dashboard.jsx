@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Statistic, Table, Tag, Button, List, Typography, Space, Alert, Segmented, Progress } from 'antd';
 import {
-  DollarOutlined, FileTextOutlined, WalletOutlined, RiseOutlined,
+  DollarOutlined, FileTextOutlined,   WalletOutlined, RiseOutlined,
   PlusOutlined, ArrowRightOutlined, WarningOutlined, ClockCircleOutlined, FireOutlined,
   BarChartOutlined, PieChartOutlined, ArrowDownOutlined, ArrowUpOutlined,
   CalendarOutlined, TeamOutlined, ShoppingCartOutlined, ShoppingOutlined,
@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
 import { useLanguage } from '../i18n/LanguageContext';
 import db from '../db';
@@ -233,7 +233,7 @@ export default function Dashboard() {
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
             <Space align="center" size={14}>
-              <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}>
+              <div className="gradient-icon">
                 <BarChartOutlined style={{ color: '#fff', fontSize: 20 }} />
               </div>
               <div>
@@ -263,11 +263,70 @@ export default function Dashboard() {
         </Row>
       </div>
 
+      <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
+        <Col xs={12} sm={6} lg={3}>
+          <Button type="primary" block size="large" icon={<PlusOutlined />}
+            onClick={() => navigate('/invoice/new')}
+            style={{ height: 60, borderRadius: 12, fontWeight: 600, fontSize: 13 }}>
+            {t('invoice.newTitle')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<DollarOutlined />}
+            onClick={() => navigate('/payments')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: '#52c41a', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.payments')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<ShoppingOutlined />}
+            onClick={() => navigate('/products')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: '#eb2f96', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.products')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<TeamOutlined />}
+            onClick={() => navigate('/customers')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: '#13c2c2', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.customers')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<WalletOutlined />}
+            onClick={() => navigate('/expenses')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: '#faad14', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.expenses')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<ShoppingCartOutlined />}
+            onClick={() => navigate('/purchases')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: '#13c2c2', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.purchases')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<FileTextOutlined />}
+            onClick={() => navigate('/quotation/new')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: '#722ed1', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.quotation')}
+          </Button>
+        </Col>
+        <Col xs={12} sm={6} lg={3}>
+          <Button block size="large" icon={<BarChartOutlined />}
+            onClick={() => navigate('/reports')}
+            style={{ height: 60, borderRadius: 12, borderColor: 'var(--border-color)', color: 'var(--accent)', fontWeight: 500, fontSize: 13 }}>
+            {t('nav.reports')}
+          </Button>
+        </Col>
+      </Row>
+
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('#6366f1')}>
-            <div className="stat-label"><DollarOutlined style={{ color: '#6366f1', marginRight: 4 }} />{t('dashboard.revenue')}</div>
-            <div className="stat-value" style={{ color: '#6366f1' }}>₹{stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <Card className="stat-card" size="small" styles={{ body: { padding: '18px 20px' } }} style={cardStyle('var(--accent)')}>
+            <div className="stat-label"><DollarOutlined style={{ color: 'var(--accent)', marginRight: 4 }} />{t('dashboard.revenue')}</div>
+            <div className="stat-value" style={{ color: 'var(--accent)' }}>₹{stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             {renderStatFooter(
               <>
                 <span style={{ color: '#52c41a' }}>● {t('dashboard.collected')}: ₹{stats.paid.toFixed(2)}</span>
@@ -377,7 +436,7 @@ export default function Dashboard() {
             styles={{ body: { padding: '20px 20px' } }}
             title={
               <Space>
-                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                 <div className="gradient-icon" style={{ width: 28, height: 28, borderRadius: 6 }}>
                   <BarChartOutlined style={{ color: '#fff', fontSize: 14 }} />
                 </div>
                 <span style={{ fontWeight: 600 }}>{t('dashboard.salesVsExpenses')}</span>
@@ -499,7 +558,7 @@ export default function Dashboard() {
             styles={{ body: { padding: 0 } }}
             title={
               <Space>
-                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
+                <div className="gradient-icon" style={{ width: 28, height: 28, borderRadius: 6 }}>
                   <FileTextOutlined style={{ color: '#fff', fontSize: 14 }} />
                 </div>
                 <span style={{ fontWeight: 600 }}>{t('dashboard.recentInvoices')}</span>
@@ -643,10 +702,10 @@ export default function Dashboard() {
               styles={{ body: { padding: '18px 20px' } }}
               title={
                 <Space>
-                  <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', width: 28, height: 28, borderRadius: 6 }}>
-                    <HistoryOutlined style={{ color: '#fff', fontSize: 14 }} />
-                  </div>
-                  <span style={{ fontWeight: 600 }}>{t('dashboard.recentActivity')}</span>
+                <div className="gradient-icon" style={{ width: 28, height: 28, borderRadius: 6 }}>
+                  <HistoryOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>{t('dashboard.recentActivity')}</span>
                 </Space>
               }
               extra={<Button type="link" size="small" onClick={() => navigate('/activity')}>{t('dashboard.viewAll')} <ArrowRightOutlined /></Button>}
@@ -668,6 +727,80 @@ export default function Dashboard() {
               />
             </Card>
           )}
+        </Col>
+      </Row>
+
+      {stats.overdueCount > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<FireOutlined />}
+          message={<Text strong>{stats.overdueCount} {t('common.overdue')} {t('invoice.title').toLowerCase()} — ₹{stats.overdueAmount.toFixed(2)}</Text>}
+          description={<Text>{t('dashboard.noOverdue') ? 'Payment(s) past due date. Send reminders or mark as paid.' : ''}</Text>}
+          action={<Button size="small" icon={<FileTextOutlined />} onClick={() => navigate('/invoices')}>{t('dashboard.viewAll')}</Button>}
+          style={{ borderRadius: 12, marginTop: 20, border: 'none' }}
+          closable
+        />
+      )}
+
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24}>
+          <Card
+            className="chart-card"
+            size="small"
+            styles={{ body: { padding: '20px 20px' } }}
+            title={
+              <Space>
+                <div className="gradient-icon" style={{ background: 'linear-gradient(135deg, #52c41a, #73d13d)', width: 28, height: 28, borderRadius: 6 }}>
+                  <RiseOutlined style={{ color: '#fff', fontSize: 14 }} />
+                </div>
+                <span style={{ fontWeight: 600 }}>Cash Flow Forecast</span>
+              </Space>
+            }
+          >
+            {(() => {
+              const today = new Date();
+              const forecastMap = {};
+              for (let i = 0; i < 30; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() + i);
+                const key = d.toISOString().split('T')[0];
+                forecastMap[key] = { label: d.toLocaleString('en', { month: 'short', day: 'numeric' }), date: key, expected: 0, expenses: 0, cumulative: 0 };
+              }
+              allInvoices.filter(i => i.status !== 'paid' && i.dueDate).forEach(i => {
+                if (forecastMap[i.dueDate]) {
+                  forecastMap[i.dueDate].expected += Number(i.grandTotal) || 0;
+                }
+              });
+              allExpenses.filter(e => e.date).forEach(e => {
+                if (forecastMap[e.date]) {
+                  forecastMap[e.date].expenses += Number(e.amount) || 0;
+                }
+              });
+              let cum = 0;
+              const forecastData = Object.values(forecastMap).map(d => {
+                cum += d.expected - d.expenses;
+                return { ...d, cumulative: Math.round(cum * 100) / 100 };
+              });
+              return (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={forecastData}>
+                    <defs>
+                      <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#52c41a" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#52c41a" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={4} />
+                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <ReTooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-card)' }} />
+                    <Area type="monotone" dataKey="cumulative" stroke="#52c41a" fill="url(#cashGrad)" strokeWidth={2} name="Projected Balance" dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              );
+            })()}
+          </Card>
         </Col>
       </Row>
     </div>

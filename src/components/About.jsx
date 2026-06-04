@@ -28,7 +28,7 @@ export default function About() {
               <Space>
                 <div style={{
                   width: 56, height: 56, borderRadius: 16,
-                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  background: 'var(--accent-gradient)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <FileTextOutlined style={{ fontSize: 26, color: 'white' }} />
@@ -52,7 +52,7 @@ export default function About() {
                 <Col xs={24} sm={12} key={i}>
                   <Card size="small" styles={{ body: { padding: '12px 16px' } }}>
                     <Space>
-                      <span style={{ color: '#6366f1', fontSize: 18 }}>{f.icon}</span>
+                      <span style={{ color: 'var(--accent)', fontSize: 18 }}>{f.icon}</span>
                       <div>
                         <Text strong style={{ fontSize: 13 }}>{f.key}</Text>
                         <br />
@@ -89,9 +89,9 @@ export default function About() {
 
             <Card title={t('about.contact')} size="small" styles={{ body: { padding: '16px 20px' } }}>
               <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <div><MailOutlined style={{ color: '#6366f1', marginRight: 8 }} /><Text>lalit@example.com</Text></div>
-                <div><PhoneOutlined style={{ color: '#6366f1', marginRight: 8 }} /><Text>+91-9876543210</Text></div>
-                <div><EnvironmentOutlined style={{ color: '#6366f1', marginRight: 8 }} /><Text>Mumbai, India</Text></div>
+                <div><MailOutlined style={{ color: 'var(--accent)', marginRight: 8 }} /><Text>lalit@example.com</Text></div>
+                <div><PhoneOutlined style={{ color: 'var(--accent)', marginRight: 8 }} /><Text>+91-9876543210</Text></div>
+                <div><EnvironmentOutlined style={{ color: 'var(--accent)', marginRight: 8 }} /><Text>Mumbai, India</Text></div>
               </Space>
             </Card>
 
