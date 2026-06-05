@@ -744,7 +744,7 @@ export default function Settings() {
   ];
 
   return (
-    <div style={{ maxWidth: 800 }}>
+    <div>
       <div style={{ marginBottom: 24 }}>
         <Row align="middle" gutter={[12, 12]}>
           <Col flex="auto">

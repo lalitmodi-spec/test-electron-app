@@ -1,17 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Input, Drawer, theme, ConfigProvider, Badge } from 'antd';
+import { Layout, Menu, Button, Input, Drawer, theme, ConfigProvider, Badge, Typography, Space, Divider, Tag, Tooltip, List } from 'antd';
 import {
   DashboardOutlined, FileTextOutlined, PlusOutlined, UserOutlined,
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
   MenuOutlined, SunOutlined, MoonOutlined, SearchOutlined, AuditOutlined,
   DollarOutlined, ShoppingCartOutlined, TeamOutlined, HistoryOutlined,
   FormOutlined, InfoCircleOutlined, QuestionCircleOutlined,
-  CloseOutlined, MinusOutlined, ExpandOutlined, CompressOutlined
+  CloseOutlined, MinusOutlined, ExpandOutlined, CompressOutlined,
+  BellOutlined, WarningOutlined, ClockCircleOutlined, StockOutlined,
+  DollarCircleOutlined, ShoppingCartOutlined as CartOutlined
 } from '@ant-design/icons';
-import { getSettings } from '../db';
+import db, { getSettings } from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
 import CommandPalette from './CommandPalette';
+
+const { Text } = Typography;
 
 const { Sider, Header, Content } = Layout;
 
@@ -57,7 +61,8 @@ export default function AppLayout() {
   const [maximized, setMaximized] = useState(false);
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const cmdPaletteRef = useRef(false);
-  const [overdueCount, setOverdueCount] = useState(0);
+  const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
+  const [notifications, setNotifications] = useState({ overdueInvoices: [], dueSoonInvoices: [], lowStock: [], overduePurchases: [] });
   const { t, lang, setLang, isHindi } = useLanguage();
 
   function applyAccent(hex) {
@@ -112,24 +117,55 @@ export default function AppLayout() {
     return () => window.removeEventListener('keydown', handleKeydown);
   }, [navigate]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function checkOverdue() {
-      const invoices = await db.invoices.toArray();
-      if (cancelled) return;
-      const today = new Date().toISOString().split('T')[0];
-      const overdue = invoices.filter(i => i.status !== 'paid' && i.dueDate && i.dueDate < today);
-      setOverdueCount(overdue.length);
-      if (overdue.length > 0) {
-        document.title = `(${overdue.length}) Billing Pro`;
-      } else {
-        document.title = 'Billing Pro';
-      }
+  function daysFromNow(dateStr) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return Math.floor((d - now) / (1000 * 60 * 60 * 24));
+  }
+
+  const loadNotifications = useCallback(async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const allInvoices = await db.invoices.toArray();
+    const allProducts = await db.products.toArray();
+    const allPurchases = await db.purchases.toArray();
+
+    const overdueInvoices = allInvoices
+      .filter(i => i.status !== 'paid' && i.dueDate && i.dueDate < today)
+      .map(i => ({ ...i, daysOverdue: Math.abs(daysFromNow(i.dueDate)) }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+    const dueSoonInvoices = allInvoices
+      .filter(i => i.status !== 'paid' && i.dueDate && i.dueDate >= today && daysFromNow(i.dueDate) <= 7)
+      .map(i => ({ ...i, daysUntilDue: daysFromNow(i.dueDate) }))
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+    const lowStock = allProducts
+      .filter(p => (Number(p.stock) || 0) <= (Number(p.minStock) || 0) && (Number(p.minStock) || 0) > 0)
+      .sort((a, b) => (Number(a.stock) / Number(a.minStock)) - (Number(b.stock) / Number(b.minStock)));
+
+    const overduePurchases = allPurchases
+      .filter(p => p.paymentStatus !== 'paid' && p.dueDate && p.dueDate < today)
+      .map(p => ({ ...p, daysOverdue: Math.abs(daysFromNow(p.dueDate)) }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+    setNotifications({ overdueInvoices, dueSoonInvoices, lowStock, overduePurchases });
+
+    const totalNotif = overdueInvoices.length + lowStock.length + overduePurchases.length;
+    if (totalNotif > 0) {
+      document.title = `(${totalNotif}) Billing Pro`;
+    } else {
+      document.title = 'Billing Pro';
     }
-    checkOverdue();
-    const interval = setInterval(checkOverdue, 60000);
-    return () => { cancelled = true; clearInterval(interval); };
   }, []);
+
+  useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
+  const notifCount = notifications.overdueInvoices.length + notifications.lowStock.length + notifications.overduePurchases.length;
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
@@ -252,58 +288,88 @@ export default function AppLayout() {
 
         <Layout>
           <Header style={{
-            padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12,
-            height: 56, borderBottom: '1px solid var(--border-color)',
+            padding: '0 12px 0 4px', display: 'flex', alignItems: 'center', gap: 6,
+            height: 52, borderBottom: '1px solid var(--border-color)',
             background: 'var(--bg-card)', position: 'sticky', top: 0, zIndex: 10,
             WebkitAppRegion: 'drag', justifyContent: 'space-between',
           }}>
-            <div style={{ WebkitAppRegion: 'no-drag', display: 'flex', alignItems: 'center', gap: 12 }}>
-            {isMobile && (
-              <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)}
-                style={{ color: 'var(--text-secondary)' }} />
-            )}
-            {isMobile === false && (
-              <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(!collapsed)}
-                style={{ color: 'var(--text-secondary)' }} />
-            )}
-            <Input
-              prefix={<SearchOutlined style={{ color: 'var(--text-secondary)' }} />}
-              placeholder={t('header.searchPlaceholder')}
-              style={{ maxWidth: 320, background: 'var(--bg-body)', border: 'none', borderRadius: 8 }}
-              suffix={<span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, background: 'var(--border-color)', padding: '0 6px', borderRadius: 4, lineHeight: '18px' }}>Ctrl+K</span>}
-              onClick={() => setCmdPaletteOpen(true)}
-              onPressEnter={(e) => {
-                const q = e.target.value.trim().toLowerCase();
-                if (q) navigate(`/invoices?search=${encodeURIComponent(q)}`);
-              }}
-            />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, WebkitAppRegion: 'no-drag' }}>
-              <Button
-                type="text"
-                onClick={() => setLang(isHindi ? 'en' : 'hi')}
-                style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}
-              >
-                {isHindi ? 'EN' : 'हिं'}
-              </Button>
-              <Button
-                type="text"
-                icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
-                onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
-                style={{ color: 'var(--text-secondary)' }}
+            <div style={{ WebkitAppRegion: 'no-drag', display: 'flex', alignItems: 'center', gap: 4 }}>
+              {isMobile && (
+                <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)}
+                  style={{ color: 'var(--text-secondary)', width: 36 }} />
+              )}
+              {isMobile === false && (
+                <Button type="text" icon={<MenuOutlined />} onClick={() => setCollapsed(!collapsed)}
+                  style={{ color: 'var(--text-secondary)', width: 36 }} />
+              )}
+              <Input
+                prefix={<SearchOutlined style={{ color: '#94a3b8', fontSize: 14 }} />}
+                placeholder={t('header.searchPlaceholder')}
+                style={{
+                  maxWidth: 300, height: 34, borderRadius: 8, fontSize: 13,
+                  background: 'var(--bg-body)', border: '1px solid transparent',
+                }}
+                suffix={
+                  <span style={{
+                    fontSize: 10, color: '#94a3b8', opacity: 0.6,
+                    background: 'var(--border-color)', padding: '0 6px', borderRadius: 4,
+                    lineHeight: '18px', fontWeight: 500, letterSpacing: '0.3px'
+                  }}>⌘K</span>
+                }
+                onClick={() => setCmdPaletteOpen(true)}
+                onPressEnter={(e) => {
+                  const q = e.target.value.trim().toLowerCase();
+                  if (q) navigate(`/invoices?search=${encodeURIComponent(q)}`);
+                }}
               />
-              <div style={{ width: 1, height: 20, background: 'var(--border-color)', margin: '0 4px' }} />
-              <Button type="text" icon={<MinusOutlined />} onClick={() => window.electronAPI?.minimize()}
-                style={{ color: 'var(--text-secondary)', width: 32 }} />
-              <Button type="text" icon={maximized ? <CompressOutlined /> : <ExpandOutlined />}
-                onClick={() => window.electronAPI?.maximize().then(() =>
-                  window.electronAPI?.isMaximized().then(setMaximized)
-                )}
-                style={{ color: 'var(--text-secondary)', width: 32 }} />
-              <Button type="text" icon={<CloseOutlined />} onClick={() => window.electronAPI?.close()}
-                style={{ color: 'var(--text-secondary)', width: 32 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#ff4d4f'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, WebkitAppRegion: 'no-drag' }}>
+              <Tooltip title={isHindi ? 'Switch to English' : 'हिंदी में बदलें'}>
+                <div onClick={() => setLang(isHindi ? 'en' : 'hi')}
+                  style={{
+                    padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
+                    background: isHindi ? 'rgba(99,102,241,0.1)' : 'transparent',
+                    color: isHindi ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontWeight: 600, fontSize: 12, letterSpacing: '0.3px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { if (!isHindi) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                  onMouseLeave={e => { if (!isHindi) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  {isHindi ? 'EN' : 'हिं'}
+                </div>
+              </Tooltip>
+              <Tooltip title={themeMode === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}>
+                <Button type="text" icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+                  onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+                  style={{ color: 'var(--text-secondary)', width: 34 }} />
+              </Tooltip>
+              <Tooltip title={t('nav.notifications')}>
+                <Badge count={notifCount} size="small" offset={[-2, 2]}>
+                  <Button type="text" icon={<BellOutlined />} onClick={() => setNotifDrawerOpen(true)}
+                    style={{ color: 'var(--text-secondary)', width: 34 }} />
+                </Badge>
+              </Tooltip>
+              <div style={{ width: 1, height: 18, background: 'var(--border-color)', margin: '0 4px' }} />
+              <div style={{ display: 'flex', gap: 2 }}>
+                <Tooltip title="Minimize">
+                  <Button type="text" icon={<MinusOutlined />} onClick={() => window.electronAPI?.minimize()}
+                    style={{ color: 'var(--text-secondary)', width: 34, height: 34, borderRadius: 8 }} />
+                </Tooltip>
+                <Tooltip title={maximized ? 'Restore' : 'Maximize'}>
+                  <Button type="text" icon={maximized ? <CompressOutlined /> : <ExpandOutlined />}
+                    onClick={() => window.electronAPI?.maximize().then(() =>
+                      window.electronAPI?.isMaximized().then(setMaximized)
+                    )}
+                    style={{ color: 'var(--text-secondary)', width: 34, height: 34, borderRadius: 8 }} />
+                </Tooltip>
+                <Tooltip title="Close">
+                  <Button type="text" icon={<CloseOutlined />} onClick={() => window.electronAPI?.close()}
+                    style={{ color: 'var(--text-secondary)', width: 34, height: 34, borderRadius: 8 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }} />
+                </Tooltip>
+              </div>
             </div>
           </Header>
 
@@ -321,6 +387,8 @@ export default function AppLayout() {
             open={drawerOpen}
             onClose={() => setDrawerOpen(false)}
             width={260}
+            closable
+            maskClosable
             styles={{ body: { padding: 0, background: '#060d1a' } }}
           >
             {sidebarContent}
@@ -328,6 +396,208 @@ export default function AppLayout() {
         )}
       </Layout>
       <CommandPalette open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
+
+      <Drawer
+        title={
+          <Space>
+            <BellOutlined style={{ color: 'var(--accent)' }} />
+            <Text strong style={{ fontSize: 16 }}>{t('nav.notifications')}</Text>
+            {notifCount > 0 && <Tag color="error" style={{ fontSize: 11, borderRadius: 6 }}>{notifCount}</Tag>}
+          </Space>
+        }
+        open={notifDrawerOpen}
+        onClose={() => { setNotifDrawerOpen(false); }}
+        placement="right"
+        width={420}
+        closable
+        maskClosable
+        mask
+        destroyOnClose
+        getContainer={document.body}
+        rootStyle={{ WebkitAppRegion: 'no-drag' }}
+        zIndex={1050}
+      >
+        {notifCount === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
+            <BellOutlined style={{ fontSize: 48, opacity: 0.3, marginBottom: 16, display: 'block' }} />
+            <Text type="secondary">{t('nav.noNotifications')}</Text>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {notifications.overdueInvoices.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: 'rgba(239,68,68,0.2)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <WarningOutlined style={{ color: '#ef4444', fontSize: 14 }} />
+                  </div>
+                  <Text strong style={{ color: '#ef4444', fontSize: 14 }}>
+                    {t('nav.overdueInvoices')}
+                  </Text>
+                  <Tag color="error" style={{ fontSize: 10, marginLeft: 'auto' }}>
+                    {notifications.overdueInvoices.length}
+                  </Tag>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {notifications.overdueInvoices.slice(0, 5).map((inv, i) => (
+                    <div key={i} onClick={() => { navigate('/invoices'); setNotifDrawerOpen(false); }}
+                      style={{
+                        padding: '10px 14px', background: '#1a2332', borderRadius: 10,
+                        border: '1px solid #2a3444', cursor: 'pointer', transition: 'all 0.2s',
+                      }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                        <Text style={{ fontWeight: 600, fontSize: 13 }}>{inv.invoiceNo}</Text>
+                        <Tag color="error" style={{ fontSize: 10, borderRadius: 4 }}>
+                          {inv.daysOverdue}d {t('nav.overdue')}
+                        </Tag>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <Text type="secondary">{inv.customerName}</Text>
+                        <Text strong style={{ color: '#ef4444' }}>₹{Number(inv.grandTotal).toFixed(2)}</Text>
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t('invoice.dueDate')}: {inv.dueDate}</Text>
+                    </div>
+                  ))}
+                  {notifications.overdueInvoices.length > 5 && (
+                    <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                      +{notifications.overdueInvoices.length - 5} {t('nav.moreItems')}
+                    </Text>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {notifications.dueSoonInvoices.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: 'rgba(245,158,11,0.2)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <ClockCircleOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
+                  </div>
+                  <Text strong style={{ color: '#f59e0b', fontSize: 14 }}>
+                    {t('nav.dueSoon')}
+                  </Text>
+                  <Tag color="warning" style={{ fontSize: 10, marginLeft: 'auto' }}>
+                    {notifications.dueSoonInvoices.length}
+                  </Tag>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {notifications.dueSoonInvoices.slice(0, 5).map((inv, i) => (
+                    <div key={i} onClick={() => { navigate('/invoices'); setNotifDrawerOpen(false); }}
+                      style={{
+                        padding: '10px 14px', background: '#1a2332', borderRadius: 10,
+                        border: '1px solid #2a3444', cursor: 'pointer', transition: 'all 0.2s',
+                      }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                        <Text style={{ fontWeight: 600, fontSize: 13 }}>{inv.invoiceNo}</Text>
+                        <Tag color="warning" style={{ fontSize: 10, borderRadius: 4 }}>
+                          {inv.daysUntilDue === 0 ? t('nav.today') : `${inv.daysUntilDue}d`}
+                        </Tag>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <Text type="secondary">{inv.customerName}</Text>
+                        <Text strong>₹{Number(inv.grandTotal).toFixed(2)}</Text>
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t('invoice.dueDate')}: {inv.dueDate}</Text>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {notifications.lowStock.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: 'rgba(245,158,11,0.2)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <StockOutlined style={{ color: '#f59e0b', fontSize: 14 }} />
+                  </div>
+                  <Text strong style={{ color: '#f59e0b', fontSize: 14 }}>
+                    {t('nav.lowStock')}
+                  </Text>
+                  <Tag color="warning" style={{ fontSize: 10, marginLeft: 'auto' }}>
+                    {notifications.lowStock.length}
+                  </Tag>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {notifications.lowStock.slice(0, 5).map((prod, i) => (
+                    <div key={i} onClick={() => { navigate('/products'); setNotifDrawerOpen(false); }}
+                      style={{
+                        padding: '10px 14px', background: '#1a2332', borderRadius: 10,
+                        border: '1px solid #2a3444', cursor: 'pointer', transition: 'all 0.2s',
+                      }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                        <Text style={{ fontWeight: 600, fontSize: 13 }}>{prod.name}</Text>
+                        {Number(prod.stock) === 0
+                          ? <Tag color="error" style={{ fontSize: 10, borderRadius: 4 }}>{t('nav.outOfStock')}</Tag>
+                          : <Tag color="warning" style={{ fontSize: 10, borderRadius: 4 }}>{t('nav.lowStock')}</Tag>
+                        }
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {t('nav.stock')}: {prod.stock} / {prod.minStock} {prod.unit || 'pcs'}
+                      </Text>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {notifications.overduePurchases.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: 'rgba(239,68,68,0.2)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <DollarCircleOutlined style={{ color: '#ef4444', fontSize: 14 }} />
+                  </div>
+                  <Text strong style={{ color: '#ef4444', fontSize: 14 }}>
+                    {t('nav.overduePurchases')}
+                  </Text>
+                  <Tag color="error" style={{ fontSize: 10, marginLeft: 'auto' }}>
+                    {notifications.overduePurchases.length}
+                  </Tag>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {notifications.overduePurchases.slice(0, 5).map((p, i) => (
+                    <div key={i} onClick={() => { navigate('/purchases'); setNotifDrawerOpen(false); }}
+                      style={{
+                        padding: '10px 14px', background: '#1a2332', borderRadius: 10,
+                        border: '1px solid #2a3444', cursor: 'pointer', transition: 'all 0.2s',
+                      }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                        <Text style={{ fontWeight: 600, fontSize: 13 }}>{p.productName}</Text>
+                        <Tag color="error" style={{ fontSize: 10, borderRadius: 4 }}>
+                          {p.daysOverdue}d {t('nav.overdue')}
+                        </Tag>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <Text type="secondary">{p.supplier}</Text>
+                        <Text strong style={{ color: '#ef4444' }}>₹{Number(p.totalCost).toFixed(2)}</Text>
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {t('invoice.dueDate')}: {p.dueDate} | {t('nav.status')}: {p.paymentStatus}
+                      </Text>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+      </Drawer>
     </ConfigProvider>
   );
 }
