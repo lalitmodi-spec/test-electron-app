@@ -35,11 +35,30 @@ export default function Payments() {
   function openCreate() {
     form.resetFields();
     form.setFieldsValue({ date: dayjs(), method: 'Cash' });
+    setSelectedInvoiceBalance(null);
     setShowForm(true);
+  }
+
+  const [selectedInvoiceBalance, setSelectedInvoiceBalance] = useState(null);
+
+  async function handleInvoiceChange(invoiceId) {
+    const inv = invMap[invoiceId];
+    if (inv) {
+      const paid = await db.payments.where('invoiceId').equals(invoiceId).toArray().then(p => p.reduce((s, x) => s + Number(x.amount), 0));
+      const grandTotal = Number(inv.grandTotal) || 0;
+      setSelectedInvoiceBalance(grandTotal - paid);
+      form.setFieldsValue({ amount: '' });
+    } else {
+      setSelectedInvoiceBalance(null);
+    }
   }
 
   async function handleSave() {
     const values = await form.validateFields();
+    if (selectedInvoiceBalance !== null && Number(values.amount) > selectedInvoiceBalance) {
+      message.error(`${t('msg.paymentExceeds')} ₹${selectedInvoiceBalance.toFixed(2)}`);
+      return;
+    }
     await recordPayment({
       invoiceId: values.invoiceId,
       amount: values.amount,
@@ -50,6 +69,7 @@ export default function Payments() {
     });
     message.success(t('msg.saved'));
     setShowForm(false);
+    setSelectedInvoiceBalance(null);
     load();
   }
 
@@ -205,18 +225,40 @@ export default function Payments() {
         <Form form={form} layout="vertical">
           <Form.Item name="invoiceId" label={t('payment.invoice')} rules={[{ required: true, message: t('placeholder.selectInvoice') }]}>
             <Select showSearch placeholder={t('placeholder.selectInvoice')}
+              onChange={handleInvoiceChange}
               filterOption={(input, option) => option.children?.toLowerCase().includes(input.toLowerCase())}>
-              {invoices.map(inv => (
-                <Select.Option key={inv.id} value={inv.id}>
-                  {inv.invoiceNo} - {inv.customerName || t('msg.walkIn')} (₹{Number(inv.grandTotal).toFixed(2)})
-                </Select.Option>
-              ))}
+              {invoices.filter(inv => {
+                const p = payments.filter(x => x.invoiceId === inv.id).reduce((s, x) => s + Number(x.amount), 0);
+                return (Number(inv.grandTotal) || 0) - p > 0;
+              }).map(inv => {
+                const paid = payments.filter(x => x.invoiceId === inv.id).reduce((s, x) => s + Number(x.amount), 0);
+                const bal = (Number(inv.grandTotal) || 0) - paid;
+                return (
+                  <Select.Option key={inv.id} value={inv.id}>
+                    {inv.invoiceNo} - {inv.customerName || t('msg.walkIn')} (Due: ₹{bal.toFixed(2)})
+                  </Select.Option>
+                );
+              })}
             </Select>
           </Form.Item>
+
+          {selectedInvoiceBalance !== null && (
+            <div style={{
+              background: selectedInvoiceBalance > 0 ? 'rgba(255,77,79,0.08)' : 'rgba(82,196,26,0.08)',
+              borderRadius: 8, padding: '10px 14px', marginBottom: 16, textAlign: 'center',
+              border: `1px solid ${selectedInvoiceBalance > 0 ? '#ff4d4f33' : '#52c41a33'}`
+            }}>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>{t('invoice.balance')}</Text>
+              <Text strong style={{ fontSize: 20, color: selectedInvoiceBalance > 0 ? '#ff4d4f' : '#52c41a' }}>
+                ₹{selectedInvoiceBalance.toFixed(2)}
+              </Text>
+            </div>
+          )}
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="amount" label={`${t('payment.amount')} (₹)`} rules={[{ required: true }]}>
-                <InputNumber min={1} step={0.01} prefix="₹" style={{ width: '100%' }} />
+                <InputNumber min={1} max={selectedInvoiceBalance || 99999999} step={0.01} prefix="₹" style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>

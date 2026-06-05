@@ -3,14 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 import {
   Form, Input, Select, DatePicker, InputNumber, Button, Table, Card, Typography, Space,
-  message, Divider, Row, Col, Popconfirm, Drawer, Tag, Collapse
+  message, Divider, Row, Col, Popconfirm, Drawer, Tag, Collapse, Progress
 } from 'antd';
 import {
   PlusOutlined, DeleteOutlined, SaveOutlined, FilePdfOutlined, ArrowLeftOutlined,
-  DollarOutlined, TruckOutlined, BellOutlined, SwapOutlined, FileTextOutlined, ShoppingOutlined
+  DollarOutlined, TruckOutlined, BellOutlined, SwapOutlined, FileTextOutlined, ShoppingOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import db, { getSettings, logActivity, recordPayment, getPaymentsForInvoice, getNextInvoiceNo } from '../db';
+import db, { getSettings, logActivity, recordPayment, getPaymentsForInvoice, getNextInvoiceNo, deletePayment } from '../db';
 import { generateInvoicePDF } from '../utils/pdfExport';
 import TemplatePreview from '../pdf/TemplatePreview';
 
@@ -48,7 +49,8 @@ export default function InvoiceForm() {
       setSettings(s);
       setSelectedTemplate(s.invoiceTemplate || 'professional');
       if (!isEdit) {
-        getNextInvoiceNo().then(nextNo => {
+        const dateVal = form.getFieldValue('date');
+        getNextInvoiceNo(dateVal ? dateVal.toDate() : new Date()).then(nextNo => {
           setInvoiceNo(nextNo);
           form.setFieldsValue({ invoiceNo: nextNo });
         });
@@ -242,6 +244,10 @@ export default function InvoiceForm() {
 
   async function handleRecordPayment() {
     const values = await paymentForm.validateFields();
+    if (Number(values.amount) > balance) {
+      message.error(`${t('msg.paymentExceeds')} ₹${balance.toFixed(2)}`);
+      return;
+    }
     await recordPayment({
       invoiceId: Number(id),
       amount: values.amount,
@@ -253,6 +259,12 @@ export default function InvoiceForm() {
     message.success(t('msg.saved'));
     setShowPayment(false);
     paymentForm.resetFields();
+    getPaymentsForInvoice(Number(id)).then(setPayments);
+  }
+
+  async function handleDeletePayment(paymentId) {
+    await deletePayment(paymentId, Number(id));
+    message.success(t('msg.deleted'));
     getPaymentsForInvoice(Number(id)).then(setPayments);
   }
 
@@ -308,10 +320,19 @@ export default function InvoiceForm() {
   ];
 
   const paymentColumns = [
+    { title: '#', dataIndex: 'id', key: 'id', width: 40, render: (_, __, i) => i + 1 },
     { title: t('common.date'), dataIndex: 'date', key: 'date', width: 100 },
-    { title: t('invoice.paymentMethod'), dataIndex: 'method', key: 'method', width: 100, render: (t) => <Tag>{t}</Tag> },
+    { title: t('invoice.paymentMethod'), dataIndex: 'method', key: 'method', width: 90, render: (t) => <Tag style={{ margin: 0 }}>{t}</Tag> },
     { title: t('common.amount'), dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => <Text strong style={{ color: '#52c41a' }}>₹{Number(v).toFixed(2)}</Text> },
     { title: 'Reference', dataIndex: 'reference', key: 'reference', render: (t) => t || '-' },
+    {
+      title: '', key: 'actions', width: 50, align: 'center',
+      render: (_, r) => (
+        <Popconfirm title={t('msg.confirmDelete')} onConfirm={() => handleDeletePayment(r.id)}>
+          <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+        </Popconfirm>
+      ),
+    },
   ];
 
   return (
@@ -660,42 +681,94 @@ export default function InvoiceForm() {
         </Row>
       </Card>
 
-      <Drawer title={t('invoice.recordPayment')} open={showPayment} onClose={() => setShowPayment(false)}
-        placement="right" width={400}
+      <Drawer title={
+        <Space>
+          <DollarOutlined style={{ color: '#52c41a' }} />
+          <Text strong>{t('invoice.recordPayment')}</Text>
+        </Space>
+      } open={showPayment} onClose={() => setShowPayment(false)}
+        placement="right" width={420}
         extra={
           <Space>
             <Button onClick={() => setShowPayment(false)}>{t('common.cancel')}</Button>
-            <Button type="primary" onClick={handleRecordPayment}>{t('common.save')}</Button>
+            <Button type="primary" icon={<DollarOutlined style={{ color: '#fff' }} />} onClick={handleRecordPayment} disabled={balance <= 0}>{t('common.save')}</Button>
           </Space>
         }>
-        <Form form={paymentForm} layout="vertical">
-          <Form.Item name="amount" label={t('common.amount')} rules={[{ required: true }]}>
-            <InputNumber min={1} max={totals.grandTotal} step={0.01} prefix="₹" style={{ width: '100%' }} />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="method" label={t('invoice.paymentMethod')}>
-                <Select>
-                  <Select.Option value="Cash">{t('paymentMethods.cash')}</Select.Option>
-                  <Select.Option value="UPI">{t('paymentMethods.upi')}</Select.Option>
-                  <Select.Option value="Bank Transfer">{t('paymentMethods.bankTransfer')}</Select.Option>
-                  <Select.Option value="Card">{t('paymentMethods.card')}</Select.Option>
-                </Select>
+        {balance <= 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a', marginBottom: 16 }} />
+            <Title level={4} style={{ color: '#52c41a', margin: 0 }}>{t('invoice.fullyPaid')}</Title>
+            <Text type="secondary">{t('invoice.noPaymentDue')}</Text>
+          </div>
+        ) : (
+          <>
+            <div style={{
+              background: 'rgba(var(--accent-rgb), 0.05)', borderRadius: 12, padding: 20,
+              marginBottom: 20, border: '1px solid var(--border-color)'
+            }}>
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{t('invoice.grandTotal')}</Text>
+                  <Text strong style={{ fontSize: 22, color: 'var(--accent)' }}>₹{totals.grandTotal.toFixed(2)}</Text>
+                </Col>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{t('common.paid')}</Text>
+                  <Text strong style={{ fontSize: 22, color: '#52c41a' }}>₹{totalPaid.toFixed(2)}</Text>
+                </Col>
+                <Col span={24}>
+                  <Progress
+                    percent={totals.grandTotal > 0 ? Math.round((totalPaid / totals.grandTotal) * 100) : 0}
+                    strokeColor="#52c41a"
+                    trailColor="rgba(255,255,255,0.1)"
+                    format={() => `${Math.round((totalPaid / totals.grandTotal) * 100)}%`}
+                  />
+                </Col>
+                <Col span={24}>
+                  <div style={{
+                    background: balance > 0 ? 'rgba(255,77,79,0.1)' : 'rgba(82,196,26,0.1)',
+                    borderRadius: 8, padding: '10px 14px', textAlign: 'center',
+                    border: `1px solid ${balance > 0 ? '#ff4d4f44' : '#52c41a44'}`
+                  }}>
+                    <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>{t('invoice.balance')}</Text>
+                    <Text strong style={{ fontSize: 26, color: balance > 0 ? '#ff4d4f' : '#52c41a' }}>
+                      ₹{balance.toFixed(2)}
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+
+            <Form form={paymentForm} layout="vertical">
+              <Form.Item name="amount" label={t('common.amount')} rules={[{ required: true, message: t('msg.requiredFields') }]}>
+                <InputNumber min={1} max={balance} step={0.01} prefix="₹" style={{ width: '100%' }}
+                  placeholder={`Max: ₹${balance.toFixed(2)}`} />
               </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="date" label={t('common.date')}>
-                <DatePicker style={{ width: '100%' }} />
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="method" label={t('invoice.paymentMethod')}>
+                    <Select>
+                      <Select.Option value="Cash">{t('paymentMethods.cash')}</Select.Option>
+                      <Select.Option value="UPI">{t('paymentMethods.upi')}</Select.Option>
+                      <Select.Option value="Bank Transfer">{t('paymentMethods.bankTransfer')}</Select.Option>
+                      <Select.Option value="Card">{t('paymentMethods.card')}</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="date" label={t('common.date')}>
+                    <DatePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Form.Item name="reference" label="Reference">
+                <Input placeholder="Cheque/UTR no." />
               </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="reference" label="Reference">
-            <Input placeholder="Cheque/UTR no." />
-          </Form.Item>
-          <Form.Item name="note" label={t('common.notes')}>
-            <Input.TextArea rows={2} />
-          </Form.Item>
-        </Form>
+              <Form.Item name="note" label={t('common.notes')}>
+                <Input.TextArea rows={2} />
+              </Form.Item>
+            </Form>
+          </>
+        )}
       </Drawer>
 
       <TemplatePreview

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal, Table, Tooltip, Tag, Drawer } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined, MailOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined, MailOutlined, QuestionCircleOutlined, SwapOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity, backupAllData, saveBackupRecord, restoreAllData, getBackupHistory, deleteBackupRecord } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -98,7 +98,11 @@ export default function Settings() {
           secure: Boolean(values.smtpSecure),
         });
       }
-      if (values.theme === 'dark') {
+      let mode = values.theme;
+      if (mode === 'system' || !mode) {
+        mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      if (mode === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
@@ -430,7 +434,15 @@ export default function Settings() {
             <Form.Item name="invoiceNextNumber" label={t('settings.nextNumber')}>
               <InputNumber min={1} style={{ width: '100%' }} />
             </Form.Item>
-          </Col>  
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="invoiceUseFinancialYear" label={t('settings.financialYear')} valuePropName="checked">
+              <Select>
+                <Select.Option value={false}>{t('common.off')}</Select.Option>
+                <Select.Option value={true}>{t('common.on')}</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
           <Col span={24}>
             <Form.Item name="termsConditions" label={t('settings.termsConditions')}>
               <Input.TextArea rows={3} placeholder={t('settings.termsConditions')} />
@@ -520,8 +532,9 @@ export default function Settings() {
       children: (
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item name="theme" label={t('settings.theme')}>
+              <Form.Item name="theme" label={t('settings.theme')}>
               <Select>
+                <Select.Option value="system">{t('settings.systemTheme')}</Select.Option>
                 <Select.Option value="dark">{t('settings.darkMode')}</Select.Option>
                 <Select.Option value="light">{t('settings.lightMode')}</Select.Option>
               </Select>
@@ -656,6 +669,19 @@ export default function Settings() {
               <Input placeholder="your@email.com" />
             </Form.Item>
           </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="smtpFromEmail" label={t('settings.smtpFromEmail')}>
+              <Input placeholder="your@email.com" />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Divider style={{ margin: '4px 0' }} />
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.emailTemplate')}</Text>
+            <Form.Item name="emailBodyTemplate" label={t('settings.emailTemplate')}>
+              <Input.TextArea rows={4} placeholder={t('settings.emailTemplate')} />
+            </Form.Item>
+            <Text type="secondary">{t('settings.emailTemplateVars')}: {'{{customer}}'}, {'{{invoiceNo}}'}, {'{{amount}}'}, {'{{businessName}}'}</Text>
+          </Col>
           <Col span={24}>
             <Space>
               <Button
@@ -687,6 +713,47 @@ export default function Settings() {
                 {t('settings.smtpGuide')}
               </Button>
             </Space>
+          </Col>
+        </Row>
+      ),
+    },
+    {
+      key: 'recurring',
+      label: <Space><SwapOutlined />{t('settings.recurringTitle')}</Space>,
+      children: (
+        <Row gutter={16}>
+          <Col span={24}>
+            <Alert message={t('settings.recurringTitle')}
+              description={t('settings.recurringDesc')}
+              type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }} />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="recurringEnabled" label={t('settings.recurringEnable')}>
+              <Select>
+                <Select.Option value={true}>{t('common.yes')}</Select.Option>
+                <Select.Option value={false}>{t('common.no')}</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="recurringFrequency" label={t('settings.recurringFrequency')}>
+              <Select>
+                <Select.Option value="daily">{t('common.daily')}</Select.Option>
+                <Select.Option value="weekly">{t('common.weekly')}</Select.Option>
+                <Select.Option value="monthly">{t('common.monthly')}</Select.Option>
+                <Select.Option value="yearly">{t('common.yearly')}</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="recurringDay" label={t('settings.recurringDay')}>
+              <InputNumber min={1} max={31} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="recurringMaxCount" label={t('settings.recurringMaxCount')}>
+              <InputNumber min={1} max={365} style={{ width: '100%' }} />
+            </Form.Item>
           </Col>
         </Row>
       ),

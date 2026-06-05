@@ -6,11 +6,13 @@ import {
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
   ShoppingOutlined, ShoppingCartOutlined, BarChartOutlined, WarningOutlined,
-  PlusCircleOutlined
+  PlusCircleOutlined, UploadOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import db, { getSettings, logActivity, getPurchaseSummary, adjustProductStock } from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
+import { readCSVFile, mapFields } from '../utils/csvImport';
 
 const { Title, Text } = Typography;
 
@@ -28,6 +30,38 @@ export default function Products() {
   const [showStockAdjust, setShowStockAdjust] = useState(null);
   const [adjustForm] = Form.useForm();
   const [productCategories, setProductCategories] = useState([]);
+  const csvInputRef = useRef(null);
+
+  async function handleCSVImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { rows } = await readCSVFile(file);
+      let imported = 0;
+      for (const row of rows) {
+        const mapped = mapFields(row);
+        if (mapped.name) {
+          await db.products.add({
+            name: mapped.name,
+            hsn: mapped.hsn || '',
+            price: Number(mapped.price) || 0,
+            purchasePrice: Number(mapped.purchasePrice) || 0,
+            stock: Number(mapped.stock) || 0,
+            minStock: Number(mapped.minStock) || 0,
+            unit: mapped.unit || 'pcs',
+            taxRate: Number(mapped.taxRate) || 0,
+            category: mapped.category || '',
+            createdAt: new Date().toISOString(),
+          });
+          imported++;
+        }
+      }
+      message.success(`${imported} ${t('product.title')} ${t('msg.imported')}`);
+      await logActivity('import', `Imported ${imported} products from CSV`);
+      load();
+    } catch (err) { message.error(t('msg.error') + ': ' + err.message); }
+    e.target.value = '';
+  }
 
   async function load() {
     setLoading(true);
@@ -222,6 +256,10 @@ export default function Products() {
           </Col>
           <Col>
             <Space>
+              <input type="file" accept=".csv" ref={csvInputRef} style={{ display: 'none' }} onChange={handleCSVImport} />
+              <Button icon={<UploadOutlined />} onClick={() => csvInputRef.current?.click()}>
+                {t('common.import')} CSV
+              </Button>
               <Button icon={<ShoppingCartOutlined />} onClick={() => navigate('/purchases')}>
                 {t('product.purchased')}
               </Button>

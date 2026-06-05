@@ -1,7 +1,16 @@
 import db from '../db';
 import { generatePdfBlob, generatePdfArrayBuffer as genArrayBuffer, generateQuotationPdfBlob } from '../pdf/index';
+import QRCode from 'qrcode';
 
 export const generatePdfArrayBuffer = genArrayBuffer;
+
+async function generateUpiQrDataUrl(upiId, amount, name) {
+  if (!upiId) return null;
+  try {
+    const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}${amount ? `&am=${amount}` : ''}${name ? `&pn=${encodeURIComponent(name)}` : ''}&cu=INR`;
+    return await QRCode.toDataURL(upiLink, { width: 120, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
+  } catch { return null; }
+}
 
 export async function generateInvoicePDF(invoiceData, templateOverride) {
   const settingsArr = await db.settings.toArray();
@@ -21,6 +30,10 @@ export async function generateInvoicePDF(invoiceData, templateOverride) {
     } catch (e) {
       console.warn('Could not read logo file, using stored base64', e);
     }
+  }
+
+  if (settings.businessUpiId) {
+    settings.upiQrDataUrl = await generateUpiQrDataUrl(settings.businessUpiId, invoiceData.grandTotal, settings.businessName);
   }
 
   const filename = `Invoice_${invoiceData.invoiceNo || 'download'}.pdf`;

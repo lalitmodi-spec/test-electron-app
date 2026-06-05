@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card, Typography, Row, Col, Select, Statistic, Table, Tabs, Tag, Space, Button, DatePicker, Segmented } from 'antd';
-import { RiseOutlined, FileTextOutlined, AuditOutlined, DownloadOutlined, BarChartOutlined, PieChartOutlined, CalendarOutlined } from '@ant-design/icons';
+import { RiseOutlined, FileTextOutlined, AuditOutlined, DownloadOutlined, BarChartOutlined, PieChartOutlined, CalendarOutlined, TeamOutlined } from '@ant-design/icons';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area
@@ -82,6 +82,12 @@ export default function Reports() {
   const [allExpenses, setAllExpenses] = useState([]);
   const [data, setData] = useState({ sales: [], expenses: [], summary: {} });
   const [gstData, setGstData] = useState({ periods: [], totalCgst: 0, totalSgst: 0, totalIgst: 0, totalTaxable: 0 });
+  const [customers, setCustomers] = useState([]);
+  const [customerPaymentData, setCustomerPaymentData] = useState([]);
+
+  useEffect(() => {
+    db.customers.toArray().then(setCustomers);
+  }, []);
 
   useEffect(() => {
     Promise.all([db.invoices.toArray(), db.expenses.toArray()]).then(([inv, exp]) => {
@@ -155,6 +161,58 @@ export default function Reports() {
       totalTaxable: result.reduce((s, p) => s + p.taxable, 0),
     });
   }, [allInvoices, gstPeriods]);
+
+  useEffect(() => {
+    if (customers.length > 0 && allInvoices.length > 0) {
+      const data = customers.map(c => {
+        const invs = allInvoices.filter(i => i.customerId === c.id);
+        const totalBilled = invs.reduce((s, i) => s + (Number(i.grandTotal) || 0), 0);
+        const totalPaid = invs.filter(i => i.status === 'paid').reduce((s, i) => s + (Number(i.grandTotal) || 0), 0);
+        const outstanding = totalBilled - totalPaid;
+        return { ...c, totalBilled, totalPaid, outstanding, invoiceCount: invs.length };
+      });
+      setCustomerPaymentData(data.filter(d => d.invoiceCount > 0));
+    }
+  }, [customers, allInvoices]);
+
+  const customerPaymentContent = (
+    <>
+      <div style={{ marginBottom: 16, paddingTop: 16 }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={6}>
+            <Card size="small">
+              <Statistic title={t('customer.title')} value={customerPaymentData.length} valueStyle={{ color: 'var(--accent)' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Card size="small">
+              <Statistic title={t('report.totalOutstanding')} value={customerPaymentData.reduce((s, d) => s + d.outstanding, 0)} precision={2} prefix="₹" valueStyle={{ color: '#ff4d4f' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Card size="small">
+              <Statistic title={t('report.totalBilled')} value={customerPaymentData.reduce((s, d) => s + d.totalBilled, 0)} precision={2} prefix="₹" valueStyle={{ color: '#52c41a' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Card size="small">
+              <Statistic title={t('report.totalCollected')} value={customerPaymentData.reduce((s, d) => s + d.totalPaid, 0)} precision={2} prefix="₹" valueStyle={{ color: 'var(--accent)' }} />
+            </Card>
+          </Col>
+        </Row>
+      </div>
+      <Table dataSource={customerPaymentData} rowKey="id" pagination={{ pageSize: 20 }}
+        columns={[
+          { title: t('common.name'), dataIndex: 'name', key: 'name', render: (v) => <Text strong>{v}</Text> },
+          { title: t('common.phone'), dataIndex: 'phone', key: 'phone', render: (v) => v || '-' },
+          { title: t('report.invoices'), dataIndex: 'invoiceCount', key: 'invoiceCount', align: 'center' },
+          { title: t('report.totalBilled'), dataIndex: 'totalBilled', key: 'totalBilled', align: 'right', render: (v) => `₹${v.toFixed(2)}` },
+          { title: t('report.totalCollected'), dataIndex: 'totalPaid', key: 'totalPaid', align: 'right', render: (v) => <Text style={{ color: '#52c41a' }}>{`₹${v.toFixed(2)}`}</Text> },
+          { title: t('report.totalOutstanding'), dataIndex: 'outstanding', key: 'outstanding', align: 'right', render: (v) => <Text style={{ color: v > 0 ? '#ff4d4f' : '#52c41a', fontWeight: 600 }}>{`₹${v.toFixed(2)}`}</Text> },
+        ]}
+      />
+    </>
+  );
 
   function csvEscape(val) {
     const s = String(val ?? '');
@@ -536,6 +594,7 @@ export default function Reports() {
           items={[
             { key: 'overview', label: <Space><RiseOutlined />{t('report.overview')}</Space>, children: overviewContent },
             { key: 'gst', label: <Space><AuditOutlined />{t('report.gstReport')}</Space>, children: gstContent },
+            { key: 'customers', label: <Space><TeamOutlined />{t('report.customerPayments')}</Space>, children: customerPaymentContent },
           ]}
         />
       </Card>

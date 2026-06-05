@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Input, Drawer, theme, ConfigProvider, Badge, Typography, Space, Divider, Tag, Tooltip, List } from 'antd';
+import { Layout, Menu, Button, Input, Drawer, theme, ConfigProvider, Badge, Typography, Space, Divider, Tag, Tooltip, List, notification } from 'antd';
 import {
   DashboardOutlined, FileTextOutlined, PlusOutlined, UserOutlined,
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
@@ -63,6 +63,7 @@ export default function AppLayout() {
   const cmdPaletteRef = useRef(false);
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState({ overdueInvoices: [], dueSoonInvoices: [], lowStock: [], overduePurchases: [] });
+  const prevNotifRef = useRef({ lowStock: [] });
   const { t, lang, setLang, isHindi } = useLanguage();
 
   function applyAccent(hex) {
@@ -86,11 +87,24 @@ export default function AppLayout() {
   useEffect(() => {
     window.applyAccent = applyAccent;
     getSettings().then(s => {
-      if (s.theme) setThemeMode(s.theme);
+      let mode = s.theme;
+      if (s.theme === 'system' || !s.theme) {
+        mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      setThemeMode(mode);
       const color = s.themeColor || '#6366f1';
       applyAccent(color);
     });
-    return () => { delete window.applyAccent; };
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => {
+      getSettings().then(s => {
+        if (s.theme === 'system' || !s.theme) {
+          setThemeMode(e.matches ? 'dark' : 'light');
+        }
+      });
+    };
+    mq.addEventListener('change', handler);
+    return () => { delete window.applyAccent; mq.removeEventListener('change', handler); };
   }, []);
 
   useEffect(() => {
@@ -150,6 +164,18 @@ export default function AppLayout() {
       .sort((a, b) => b.daysOverdue - a.daysOverdue);
 
     setNotifications({ overdueInvoices, dueSoonInvoices, lowStock, overduePurchases });
+
+    if (lowStock.length > 0 && lowStock.length !== prevNotifRef.current.lowStock.length) {
+      lowStock.slice(0, 3).forEach(p => {
+        notification.warning({
+          message: `${t('common.lowStock')}: ${p.name}`,
+          description: `${'Stock'}: ${p.stock} / ${'Min'}: ${p.minStock}`,
+          duration: 5,
+          placement: 'bottomRight',
+        });
+      });
+    }
+    prevNotifRef.current = { lowStock };
 
     const totalNotif = overdueInvoices.length + lowStock.length + overduePurchases.length;
     if (totalNotif > 0) {

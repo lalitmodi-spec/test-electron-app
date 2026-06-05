@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Card, Statistic, Table, Tag, Button, List, Typography, Space, Alert, Segmented, Progress } from 'antd';
+import { Row, Col, Card, Statistic, Table, Tag, Button, List, Typography, Space, Alert, Segmented, Progress, DatePicker } from 'antd';
 import {
   DollarOutlined, FileTextOutlined,   WalletOutlined, RiseOutlined,
   PlusOutlined, ArrowRightOutlined, WarningOutlined, ClockCircleOutlined, FireOutlined,
@@ -12,13 +12,20 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
+import dayjs from 'dayjs';
 import { useLanguage } from '../i18n/LanguageContext';
 import db from '../db';
 
 const { Text, Title } = Typography;
 const PIE_COLORS = ['#52c41a', '#faad14', '#ff4d4f'];
 
-function getPeriodRange(period) {
+function getPeriodRange(period, customRange) {
+  if (period === 'custom' && customRange?.length === 2) {
+    return {
+      start: customRange[0].format('YYYY-MM-DD'),
+      end: customRange[1].format('YYYY-MM-DD'),
+    };
+  }
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
@@ -45,6 +52,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [period, setPeriod] = useState('month');
+  const [customRange, setCustomRange] = useState(null);
   const [allInvoices, setAllInvoices] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -80,7 +88,7 @@ export default function Dashboard() {
     });
   }, []);
 
-  const range = useMemo(() => getPeriodRange(period), [period]);
+  const range = useMemo(() => getPeriodRange(period, customRange), [period, customRange]);
 
   const { filteredInvoices, chartData, stats, paymentPie, prevPeriodSales } = useMemo(() => {
     const fInv = allInvoices.filter(i => i.date >= range.start && i.date <= range.end);
@@ -246,15 +254,24 @@ export default function Dashboard() {
             <Space wrap size={8}>
               <Segmented
                 value={period}
-                onChange={setPeriod}
+                onChange={(val) => { setPeriod(val); if (val !== 'custom') setCustomRange(null); }}
                 options={[
                   { label: t('dashboard.today'), value: 'today' },
                   { label: t('dashboard.week'), value: 'week' },
                   { label: t('dashboard.month'), value: 'month' },
                   { label: t('dashboard.year'), value: 'year' },
                   { label: t('dashboard.all'), value: 'all' },
+                  { label: t('dashboard.custom'), value: 'custom' },
                 ]}
               />
+              {period === 'custom' && (
+                <DatePicker.RangePicker
+                  value={customRange}
+                  onChange={(dates) => setCustomRange(dates)}
+                  allowClear={false}
+                  style={{ width: 240 }}
+                />
+              )}
               <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/invoice/new')}>
                 {t('invoice.newTitle')}
               </Button>

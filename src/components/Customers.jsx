@@ -6,10 +6,12 @@ import {
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
   EyeOutlined, TeamOutlined, DollarOutlined, WalletOutlined, RiseOutlined, FallOutlined,
-  PhoneOutlined, MailOutlined, GlobalOutlined, BankOutlined
+  PhoneOutlined, MailOutlined, GlobalOutlined, BankOutlined, UploadOutlined
 } from '@ant-design/icons';
+import { useRef } from 'react';
 import db, { logActivity, getCustomerPaymentSummary, getInvoicesForCustomer, getPaymentsForCustomer } from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
+import { readCSVFile, mapFields } from '../utils/csvImport';
 
 const { Title, Text } = Typography;
 
@@ -25,6 +27,38 @@ export default function Customers() {
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [summaryMap, setSummaryMap] = useState({});
+  const csvInputRef = useRef(null);
+
+  async function handleCSVImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { rows } = await readCSVFile(file);
+      let imported = 0;
+      for (const row of rows) {
+        const mapped = mapFields(row);
+        if (mapped.name) {
+          await db.customers.add({
+            name: mapped.name,
+            phone: mapped.phone || '',
+            email: mapped.email || '',
+            gstin: mapped.gstin || '',
+            address: mapped.address || '',
+            city: mapped.city || '',
+            state: mapped.state || '',
+            pincode: mapped.pincode || '',
+            companyName: mapped.companyName || '',
+            createdAt: new Date().toISOString(),
+          });
+          imported++;
+        }
+      }
+      message.success(`${imported} ${t('customer.title')} ${t('msg.imported')}`);
+      await logActivity('import', `Imported ${imported} customers from CSV`);
+      load();
+    } catch (err) { message.error(t('msg.error') + ': ' + err.message); }
+    e.target.value = '';
+  }
 
   async function load() {
     setLoading(true);
@@ -297,7 +331,15 @@ export default function Customers() {
             </Space>
           </Col>
           <Col>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t('customer.addTitle')}</Button>
+            <Space>
+              <input type="file" accept=".csv" ref={csvInputRef} style={{ display: 'none' }} onChange={handleCSVImport} />
+              <Button icon={<UploadOutlined />} onClick={() => csvInputRef.current?.click()}>
+                {t('common.import')} CSV
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                {t('customer.addTitle')}
+              </Button>
+            </Space>
           </Col>
         </Row>
       </div>

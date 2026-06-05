@@ -130,6 +130,7 @@ const defaultSettings = {
   invoiceSeparator: '-',
   invoiceNextNumber: 1,
   invoiceZeroPad: 5,
+  invoiceUseFinancialYear: false,
   expenseCategories: JSON.stringify(['Office Supplies', 'Utilities', 'Travel', 'Food', 'Rent', 'Maintenance', 'Salary', 'Marketing', 'Software', 'Other']),
   productCategories: JSON.stringify(['Electronics', 'Clothing', 'Food & Beverages', 'Furniture', 'Stationery', 'Software', 'Services', 'Raw Material', 'Packaging', 'Other']),
   smtpHost: '',
@@ -138,6 +139,12 @@ const defaultSettings = {
   smtpPass: '',
   smtpFromEmail: '',
   smtpSecure: 0,
+  emailBodyTemplate: 'Dear {{customer}},\n\nPlease find attached invoice {{invoiceNo}} for ₹{{amount}}.\n\nThank you for your business!\n\n{{businessName}}',
+  printFooter: 'This is a computer-generated invoice',
+  recurringEnabled: false,
+  recurringFrequency: 'monthly',
+  recurringDay: 1,
+  recurringMaxCount: 12,
 };
 
 export async function getSettings() {
@@ -252,7 +259,15 @@ export async function getPaymentsForCustomer(customerId) {
   }));
 }
 
-export async function getNextInvoiceNo() {
+function getFinancialYear(date) {
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const startYear = m < 3 ? y - 1 : y;
+  return String(startYear).slice(-2) + String(startYear + 1).slice(-2);
+}
+
+export async function getNextInvoiceNo(date) {
   const settings = await getSettings();
   const prefix = settings.invoicePrefix || 'INV';
   const sep = settings.invoiceSeparator || '-';
@@ -264,8 +279,9 @@ export async function getNextInvoiceNo() {
     next = existing.value;
   }
 
+  const fy = settings.invoiceUseFinancialYear ? getFinancialYear(date) + sep : '';
   const num = String(next).padStart(pad, '0');
-  const invoiceNo = `${prefix}${sep}${num}`;
+  const invoiceNo = `${prefix}${fy}${num}`;
 
   await db.counters.put({ id: 'invoice_no', key: 'invoice_no', value: next + 1 });
   await updateSetting('invoiceNextNumber', next + 1);

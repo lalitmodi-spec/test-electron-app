@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Card, Button, Input, Select, Space, Tag, Drawer, Typography, Row, Col,
-  Statistic, Popconfirm, message, Tooltip, Descriptions, Divider
+  Statistic, Popconfirm, message, Tooltip, Descriptions, Divider, Checkbox, Dropdown
 } from 'antd';
 import {
   PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined,
   SearchOutlined, DollarOutlined, MailOutlined, BellOutlined, SwapOutlined,
-  FileTextOutlined
+  FileTextOutlined, ColumnHeightOutlined, PrinterOutlined
 } from '@ant-design/icons';
 import db, { logActivity, getPaymentSummary, getSettings } from '../db';
 import { generateInvoicePDF, generatePdfArrayBuffer } from '../utils/pdfExport';
+import { generatePdfBlob } from '../pdf/index';
 import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
@@ -26,6 +27,17 @@ export default function Invoices() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [paymentSummary, setPaymentSummary] = useState({});
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [visibleColumns, setVisibleColumns] = useState({
+    date: true, customerName: true, status: true, grandTotal: true,
+  });
+
+  const allColumns = [
+    { key: 'date', label: t('common.date') },
+    { key: 'customerName', label: t('invoice.customer') },
+    { key: 'status', label: t('common.status') },
+    { key: 'grandTotal', label: t('common.amount') },
+  ];
 
   async function load() {
     setLoading(true);
@@ -106,10 +118,16 @@ export default function Invoices() {
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
       const pdfBase64 = btoa(binary);
 
+      const emailBody = (settings.emailBodyTemplate || 'Dear {{customer}},\n\nPlease find attached invoice {{invoiceNo}}.\n\n{{businessName}}')
+        .replace(/\{\{customer\}\}/g, inv.customerName || 'Customer')
+        .replace(/\{\{invoiceNo\}\}/g, inv.invoiceNo)
+        .replace(/\{\{amount\}\}/g, `₹${Number(inv.grandTotal).toFixed(2)}`)
+        .replace(/\{\{businessName\}\}/g, settings.businessName || 'Business');
+
       const smtpResult = await window.electronAPI.sendEmailSmtp({
         to: customerEmail,
         subject: `Invoice ${inv.invoiceNo} from ${settings.businessName || 'Business'}`,
-        body: `Dear ${inv.customerName},\n\nPlease find attached invoice ${inv.invoiceNo} for ₹${Number(inv.grandTotal).toFixed(2)}.\n\nThank you for your business!`,
+        body: emailBody,
         pdfBase64,
         filename: `Invoice_${inv.invoiceNo}.pdf`,
       });
@@ -134,6 +152,26 @@ export default function Invoices() {
     setView({ ...inv, _paid: paid });
   }
 
+  async function handleBatchPdf() {
+    const selected = invoices.filter(inv => selectedRowKeys.includes(inv.id));
+    for (const inv of selected) {
+      await generateInvoicePDF(inv, 'professional');
+    }
+    message.success(`${selected.length} PDFs ${t('msg.pdfGenerated')}`);
+    setSelectedRowKeys([]);
+  }
+
+  async function handleBatchDelete() {
+    const selected = invoices.filter(inv => selectedRowKeys.includes(inv.id));
+    for (const inv of selected) {
+      await db.invoices.delete(inv.id);
+      await logActivity('delete', `Deleted invoice: ${inv.invoiceNo}`);
+    }
+    message.success(`${selected.length} ${t('invoice.title').toLowerCase()} ${t('msg.deleted')}`);
+    setSelectedRowKeys([]);
+    load();
+  }
+
   const filtered = invoices.filter(inv =>
     (!search || inv.invoiceNo?.toLowerCase().includes(search.toLowerCase()) ||
       inv.customerName?.toLowerCase().includes(search.toLowerCase())) &&
@@ -142,6 +180,21 @@ export default function Invoices() {
 
   const totalAmount = filtered.reduce((s, i) => s + (Number(i.grandTotal) || 0), 0);
   const paidAmount = filtered.reduce((s, i) => s + (Number(paymentSummary[i.id]) || 0), 0);
+
+  async function handlePrint(inv) {
+    const settingsArr = await db.settings.toArray();
+    const settings = {};
+    settingsArr.forEach(s => { settings[s.key] = s.value; });
+    try {
+      const buffer = await generatePdfArrayBuffer(inv, settings);
+      const blob = new Blob([buffer], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      message.error(e.message);
+    }
+  }
 
   const columns = [
     {
@@ -154,12 +207,12 @@ export default function Invoices() {
       ),
       sorter: (a, b) => a.invoiceNo.localeCompare(b.invoiceNo),
     },
-    { title: t('common.date'), dataIndex: 'date', key: 'date', width: 110, sorter: (a, b) => a.date?.localeCompare(b.date) },
-    {
+    ...(visibleColumns.date ? [{ title: t('common.date'), dataIndex: 'date', key: 'date', width: 110, sorter: (a, b) => a.date?.localeCompare(b.date) }] : []),
+    ...(visibleColumns.customerName ? [{
       title: t('invoice.customer'), dataIndex: 'customerName', key: 'customerName',
       render: (tVal) => tVal || <Text type="secondary">{t('msg.walkIn')}</Text>,
-    },
-    {
+    }] : []),
+    ...(visibleColumns.status ? [{
       title: t('common.status'), dataIndex: 'status', key: 'status', width: 100,
       render: (s, r) => {
         const map = { paid: 'success', partial: 'warning', unpaid: 'error' };
@@ -174,8 +227,8 @@ export default function Invoices() {
       },
       filters: [{ text: t('common.paid'), value: 'paid' }, { text: t('common.unpaid'), value: 'unpaid' }, { text: t('common.partial'), value: 'partial' }],
       onFilter: (value, record) => record.status === value,
-    },
-    {
+    }] : []),
+    ...(visibleColumns.grandTotal ? [{
       title: t('common.amount'), dataIndex: 'grandTotal', key: 'grandTotal', width: 130, align: 'right',
       render: (v, r) => (
         <Space direction="vertical" size={0} style={{ textAlign: 'right' }}>
@@ -186,7 +239,7 @@ export default function Invoices() {
         </Space>
       ),
       sorter: (a, b) => Number(a.grandTotal) - Number(b.grandTotal),
-    },
+    }] : []),
     {
       title: '', key: 'actions', width: 240, align: 'right',
       render: (_, r) => (
@@ -275,6 +328,22 @@ export default function Invoices() {
                 <Select.Option value="partial">{t('common.partial')}</Select.Option>
               </Select>
             </Col>
+            <Col xs={24} sm={12} md={10}>
+              <Space wrap>
+                <Dropdown
+                  menu={{
+                    items: allColumns.map(col => ({
+                      key: col.key,
+                      label: <Checkbox checked={visibleColumns[col.key]} onChange={(e) => setVisibleColumns(prev => ({ ...prev, [col.key]: e.target.checked }))}>{col.label}</Checkbox>,
+                    })),
+                  }}
+                  trigger={['click']}
+                >
+                  <Button icon={<ColumnHeightOutlined />} size="small">{t('common.columns')}</Button>
+                </Dropdown>
+                <Button icon={<PrinterOutlined />} size="small" onClick={() => window.print()}>{t('common.print')}</Button>
+              </Space>
+            </Col>
           </Row>
         </div>
         <div style={{ padding: '8px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -297,7 +366,22 @@ export default function Invoices() {
           ))}
         </div>
 
+        {selectedRowKeys.length > 0 && (
+          <div style={{ padding: '10px 20px', background: 'rgba(var(--accent-rgb), 0.05)', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Text strong style={{ fontSize: 13 }}>{selectedRowKeys.length} selected</Text>
+            <Button size="small" icon={<FilePdfOutlined />} onClick={handleBatchPdf}>PDF All</Button>
+            <Popconfirm title={`Delete ${selectedRowKeys.length} invoices?`} onConfirm={handleBatchDelete}>
+              <Button size="small" danger icon={<DeleteOutlined />}>{t('common.delete')} All</Button>
+            </Popconfirm>
+            <Button size="small" onClick={() => setSelectedRowKeys([])}>{t('common.cancel')}</Button>
+          </div>
+        )}
         <Table dataSource={filtered} columns={columns} rowKey="id" loading={loading}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+            preserveSelectedRowKeys: false,
+          }}
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (total) => `${total} ${t('invoice.title').toLowerCase()}` }}
           scroll={{ x: 960 }} locale={{ emptyText: <div style={{ textAlign: 'center', padding: '40px 20px' }}><FileTextOutlined style={{ fontSize: 48, color: 'var(--text-secondary)', marginBottom: 16, display: 'block' }} /><Text type="secondary">{t('msg.noData')}</Text></div> }} />
       </Card>

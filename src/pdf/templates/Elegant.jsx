@@ -225,6 +225,13 @@ export default function ElegantTemplate({ invoice, settings }) {
           </View>
         )}
 
+        {biz.upiQrDataUrl && (
+          <View style={{ position: 'absolute', bottom: 60, right: 36, alignItems: 'center' }}>
+            <Image source={biz.upiQrDataUrl} style={{ width: 60, height: 60 }} />
+            <Text style={{ fontSize: 5, color: COLORS.muted, marginTop: 2 }}>Scan to Pay</Text>
+          </View>
+        )}
+
         {inv.notes && (
           <Text style={[styles.words, { marginTop: 4 }]}>Notes: {inv.notes}</Text>
         )}
