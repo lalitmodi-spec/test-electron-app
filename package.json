@@ -1,9 +1,9 @@
 {
-  "name": "my-electron-app",
+  "name": "billing-pro",
   "private": true,
   "version": "1.0.0",
-  "description": "BillingPro - GST Invoice Manager",
-  "author": "BillingPro <billingpro@example.com>",
+  "description": "Billing Pro - GST Invoice Manager",
+  "author": "Billing Pro <billingpro@example.com>",
   "homepage": "https://github.com/billingpro/app",
   "main": "electron/main.js",
   "type": "module",
@@ -22,7 +22,7 @@
   },
   "build": {
     "appId": "com.billingpro.app",
-    "productName": "BillingPro",
+    "productName": "Billing Pro",
     "directories": {
       "output": "release"
     },
@@ -36,7 +36,7 @@
         "AppImage"
       ],
       "category": "Office",
-      "icon": "public/icons.svg"
+      "icon": "public/appIcon.png"
     },
     "win": {
       "target": [
@@ -46,7 +46,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "public/appIcon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -65,6 +66,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.17.0",
+    "nodemailer": "^8.0.10",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.16.0",

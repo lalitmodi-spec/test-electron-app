@@ -1,5 +1,7 @@
 import db from '../db';
-import { generatePdfBlob, generatePdfArrayBuffer, generateQuotationPdfBlob } from '../pdf/index';
+import { generatePdfBlob, generatePdfArrayBuffer as genArrayBuffer, generateQuotationPdfBlob } from '../pdf/index';
+
+export const generatePdfArrayBuffer = genArrayBuffer;
 
 export async function generateInvoicePDF(invoiceData, templateOverride) {
   const settingsArr = await db.settings.toArray();

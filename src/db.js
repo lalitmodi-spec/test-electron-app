@@ -132,6 +132,12 @@ const defaultSettings = {
   invoiceZeroPad: 5,
   expenseCategories: JSON.stringify(['Office Supplies', 'Utilities', 'Travel', 'Food', 'Rent', 'Maintenance', 'Salary', 'Marketing', 'Software', 'Other']),
   productCategories: JSON.stringify(['Electronics', 'Clothing', 'Food & Beverages', 'Furniture', 'Stationery', 'Software', 'Services', 'Raw Material', 'Packaging', 'Other']),
+  smtpHost: '',
+  smtpPort: 587,
+  smtpUser: '',
+  smtpPass: '',
+  smtpFromEmail: '',
+  smtpSecure: false,
 };
 
 export async function getSettings() {

@@ -10,7 +10,7 @@ import {
   FileTextOutlined
 } from '@ant-design/icons';
 import db, { logActivity, getPaymentSummary, getSettings } from '../db';
-import { generateInvoicePDF } from '../utils/pdfExport';
+import { generateInvoicePDF, generatePdfArrayBuffer } from '../utils/pdfExport';
 import { useLanguage } from '../i18n/LanguageContext';
 
 const { Title, Text } = Typography;
@@ -64,11 +64,18 @@ export default function Invoices() {
       .replace(/\{\{businessName\}\}/g, settings.businessName || 'Business');
 
     if (inv.customerEmail && window.electronAPI) {
-      await window.electronAPI.sendEmail({
+      const smtpResult = await window.electronAPI.sendEmailSmtp({
         to: inv.customerEmail,
         subject: `Payment Reminder: ${inv.invoiceNo}`,
         body: msg,
       });
+      if (!smtpResult.success && smtpResult.error?.includes('SMTP not configured')) {
+        await window.electronAPI.sendEmail({
+          to: inv.customerEmail,
+          subject: `Payment Reminder: ${inv.invoiceNo}`,
+          body: msg,
+        });
+      }
     } else {
       await navigator.clipboard.writeText(msg);
       message.success(t('invoice.reminderTextCopied'));
@@ -79,20 +86,46 @@ export default function Invoices() {
   }
 
   async function handleEmail(inv) {
-    if (window.electronAPI) {
-      const customerEmail = inv.customerEmail || '';
-      if (!customerEmail) {
-        message.warning(t('msg.noEmail'));
-        return;
-      }
-      await window.electronAPI.sendEmail({
-        to: customerEmail,
-        subject: `Invoice ${inv.invoiceNo} from ${inv.businessName || 'Business'}`,
-        body: `Dear ${inv.customerName},\n\nPlease find attached invoice ${inv.invoiceNo} for ₹${Number(inv.grandTotal).toFixed(2)}.\n\nThank you for your business!`,
-      });
-      message.success(t('msg.emailOpened'));
-    } else {
+    if (!window.electronAPI) {
       message.info(t('msg.emailAvailable'));
+      return;
+    }
+    const customerEmail = inv.customerEmail || '';
+    if (!customerEmail) {
+      message.warning(t('msg.noEmail'));
+      return;
+    }
+    try {
+      const settingsArr = await db.settings.toArray();
+      const settings = {};
+      settingsArr.forEach(s => { settings[s.key] = s.value; });
+
+      const buffer = await generatePdfArrayBuffer(inv, settings);
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const pdfBase64 = btoa(binary);
+
+      const smtpResult = await window.electronAPI.sendEmailSmtp({
+        to: customerEmail,
+        subject: `Invoice ${inv.invoiceNo} from ${settings.businessName || 'Business'}`,
+        body: `Dear ${inv.customerName},\n\nPlease find attached invoice ${inv.invoiceNo} for ₹${Number(inv.grandTotal).toFixed(2)}.\n\nThank you for your business!`,
+        pdfBase64,
+        filename: `Invoice_${inv.invoiceNo}.pdf`,
+      });
+
+      if (smtpResult.success) {
+        message.success(t('msg.emailSent'));
+        await logActivity('email', `Invoice ${inv.invoiceNo} sent to ${customerEmail}`);
+      } else {
+        if (smtpResult.error?.includes('SMTP not configured') || smtpResult.error?.includes('incomplete')) {
+          message.warning(t('msg.smtpNotConfigured'));
+        } else {
+          message.error(`${t('msg.emailSendFailed')}: ${smtpResult.error}`);
+        }
+      }
+    } catch (e) {
+      message.error(`${t('msg.emailSendFailed')}: ${e.message}`);
     }
   }
 

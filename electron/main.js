@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeImage } from "e
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
@@ -56,11 +58,16 @@ function getLogoDir() {
 }
 
 function createWindow() {
+    const iconPath = isDev
+        ? path.join(__dirname, "../public/appIcon.png")
+        : path.join(__dirname, "../dist/appIcon.png");
+
     const win = new BrowserWindow({
         width: 1360,
         height: 860,
         minWidth: 1024,
         minHeight: 700,
+        icon: iconPath,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -227,6 +234,127 @@ ipcMain.handle("send-email", async (event, { to, subject, body, attachmentPath }
   }
   shell.openExternal(mailto);
   return { success: true };
+});
+
+function encrypt(text) {
+  if (!text) return '';
+  const key = crypto.createHash('sha256').update(app.getVersion()).digest().slice(0, 32);
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+function decrypt(encrypted) {
+  if (!encrypted) return '';
+  try {
+    const key = crypto.createHash('sha256').update(app.getVersion()).digest().slice(0, 32);
+    const parts = encrypted.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encryptedText = parts[1];
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch { return ''; }
+}
+
+function getSmtpConfigPath() {
+  return path.join(app.getPath('userData'), 'smtp-config.json');
+}
+
+ipcMain.handle("save-smtp-config", async (event, config) => {
+  try {
+    const data = {
+      host: config.host || '',
+      port: Number(config.port) || 587,
+      user: config.user || '',
+      pass: encrypt(config.pass || ''),
+      fromEmail: config.fromEmail || '',
+      secure: Boolean(config.secure),
+    };
+    fs.writeFileSync(getSmtpConfigPath(), JSON.stringify(data, null, 2), 'utf-8');
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle("get-smtp-config", async () => {
+  try {
+    if (!fs.existsSync(getSmtpConfigPath())) {
+      return { success: true, config: { host: '', port: 587, user: '', pass: '', fromEmail: '', secure: false } };
+    }
+    const raw = JSON.parse(fs.readFileSync(getSmtpConfigPath(), 'utf-8'));
+    return {
+      success: true,
+      config: {
+        host: raw.host || '',
+        port: raw.port || 587,
+        user: raw.user || '',
+        pass: decrypt(raw.pass || ''),
+        fromEmail: raw.fromEmail || '',
+        secure: Boolean(raw.secure),
+      },
+    };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle("send-email-smtp", async (event, { to, subject, body, pdfBase64, filename }) => {
+  try {
+    const configPath = getSmtpConfigPath();
+    if (!fs.existsSync(configPath)) {
+      return { success: false, error: 'SMTP not configured' };
+    }
+    const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const config = {
+      host: raw.host,
+      port: raw.port,
+      user: raw.user,
+      pass: decrypt(raw.pass),
+      fromEmail: raw.fromEmail,
+      secure: raw.secure,
+    };
+
+    if (!config.host || !config.user || !config.pass || !config.fromEmail) {
+      return { success: false, error: 'SMTP config incomplete' };
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: { user: config.user, pass: config.pass },
+    });
+
+    const attachments = [];
+    if (pdfBase64 && filename) {
+      const tmpDir = app.getPath('temp');
+      const tmpFile = path.join(tmpDir, filename || 'attachment.pdf');
+      const buffer = Buffer.from(pdfBase64, 'base64');
+      fs.writeFileSync(tmpFile, buffer);
+      attachments.push({ path: tmpFile });
+    }
+
+    const info = await transporter.sendMail({
+      from: config.fromEmail,
+      to,
+      subject: subject || 'No Subject',
+      text: body || '',
+      attachments,
+    });
+
+    if (attachments.length > 0 && attachments[0].path) {
+      try { fs.unlinkSync(attachments[0].path); } catch { /* ignore */ }
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });
 
 app.whenReady().then(createWindow);

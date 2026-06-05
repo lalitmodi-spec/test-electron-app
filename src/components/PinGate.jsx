@@ -101,7 +101,7 @@ export default function PinGate({ onUnlock }) {
           }}>
             <LockOutlined style={{ fontSize: 24, color: 'white' }} />
           </div>
-          <Title level={4} style={{ color: 'white', margin: 0, fontWeight: 600 }}>BillingPro</Title>
+          <Title level={4} style={{ color: 'white', margin: 0, fontWeight: 600 }}>Billing Pro</Title>
           <Text style={{ color: 'rgba(148,163,184,0.7)', fontSize: 12, display: 'block', marginTop: 4 }}>
             {t('common.pinRequired')}
           </Text>

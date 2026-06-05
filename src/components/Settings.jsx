@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal, Table, Tooltip } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined } from '@ant-design/icons';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined, MailOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity, backupAllData, saveBackupRecord, restoreAllData, getBackupHistory, deleteBackupRecord } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -16,6 +16,7 @@ export default function Settings() {
   const fileInputRef = useRef(null);
   const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
   const [templatePreviewSelected, setTemplatePreviewSelected] = useState('professional');
+  const [smtpTesting, setSmtpTesting] = useState(false);
 
   useEffect(() => {
     getSettings().then(s => {
@@ -27,6 +28,20 @@ export default function Settings() {
           if (r.success && r.data) {
             setLogoPreview(r.data);
             form.setFieldsValue({ businessLogo: r.data });
+          }
+        });
+      }
+      if (window.electronAPI) {
+        window.electronAPI.getSmtpConfig().then(r => {
+          if (r.success && r.config) {
+            form.setFieldsValue({
+              smtpHost: r.config.host,
+              smtpPort: r.config.port,
+              smtpUser: r.config.user,
+              smtpPass: r.config.pass,
+              smtpFromEmail: r.config.fromEmail,
+              smtpSecure: r.config.secure,
+            });
           }
         });
       }
@@ -66,8 +81,21 @@ export default function Settings() {
     setSaving(true);
     try {
       const values = await form.validateFields();
+      const smtpKeys = ['smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFromEmail', 'smtpSecure'];
       for (const [key, value] of Object.entries(values)) {
-        await updateSetting(key, value);
+        if (!smtpKeys.includes(key)) {
+          await updateSetting(key, value);
+        }
+      }
+      if (window.electronAPI) {
+        await window.electronAPI.saveSmtpConfig({
+          host: values.smtpHost,
+          port: values.smtpPort,
+          user: values.smtpUser,
+          pass: values.smtpPass,
+          fromEmail: values.smtpFromEmail,
+          secure: values.smtpSecure,
+        });
       }
       document.documentElement.classList.toggle('dark', values.theme === 'dark');
       await logActivity('settings', t('activity.settings'));
@@ -578,6 +606,81 @@ export default function Settings() {
             </Row>
           </Card>
         </div>
+      ),
+    },
+    {
+      key: 'email',
+      label: <Space><MailOutlined />{t('settings.emailSettings')}</Space>,
+      children: (
+        <Row gutter={16}>
+          <Col span={24}>
+            <Alert message={t('settings.emailSettings')}
+              description={t('settings.emailSettingsDesc')}
+              type="info" showIcon style={{ marginBottom: 16, borderRadius: 10 }} />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="smtpHost" label={t('settings.smtpHost')}>
+              <Input placeholder="smtp.gmail.com" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item name="smtpPort" label={t('settings.smtpPort')}>
+              <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={6}>
+            <Form.Item name="smtpSecure" label={t('settings.smtpSecure')}>
+              <Select>
+                <Select.Option value={true}>SSL/TLS (465)</Select.Option>
+                <Select.Option value={false}>STARTTLS (587)</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="smtpUser" label={t('settings.smtpUser')}>
+              <Input placeholder="your@email.com" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="smtpPass" label={t('settings.smtpPass')}>
+              <Input.Password placeholder={t('settings.smtpPass')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="smtpFromEmail" label={t('settings.smtpFromEmail')}>
+              <Input placeholder="your@email.com" />
+            </Form.Item>
+          </Col>
+          <Col span={24}>
+            <Space>
+              <Button
+                icon={<MailOutlined />}
+                onClick={async () => {
+                  setSmtpTesting(true);
+                  try {
+                    const values = form.getFieldsValue();
+                    const result = await window.electronAPI?.sendEmailSmtp({
+                      to: values.smtpFromEmail || values.smtpUser,
+                      subject: 'Test Email from Billing Pro',
+                      body: 'Your SMTP settings are working correctly!',
+                    });
+                    if (result?.success) {
+                      message.success(t('msg.emailSent'));
+                    } else {
+                      message.error(result?.error || t('msg.emailSendFailed'));
+                    }
+                  } catch (e) {
+                    message.error(e.message);
+                  }
+                  setSmtpTesting(false);
+                }}
+                loading={smtpTesting}
+              >
+                {t('settings.smtpTest')}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
       ),
     },
     {

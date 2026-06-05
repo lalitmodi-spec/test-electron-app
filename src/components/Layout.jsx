@@ -120,9 +120,9 @@ export default function AppLayout() {
       const overdue = invoices.filter(i => i.status !== 'paid' && i.dueDate && i.dueDate < today);
       setOverdueCount(overdue.length);
       if (overdue.length > 0) {
-        document.title = `(${overdue.length}) BillingPro`;
+        document.title = `(${overdue.length}) Billing Pro`;
       } else {
-        document.title = 'BillingPro';
+        document.title = 'Billing Pro';
       }
     }
     checkOverdue();

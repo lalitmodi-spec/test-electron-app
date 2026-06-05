@@ -34,7 +34,7 @@ export default function About() {
                   <FileTextOutlined style={{ fontSize: 26, color: 'white' }} />
                 </div>
                 <div>
-                  <Title level={3} style={{ margin: 0 }}>BillingPro</Title>
+                  <Title level={3} style={{ margin: 0 }}>Billing Pro</Title>
                   <Text type="secondary">{t('about.subtitle')}</Text>
                 </div>
               </Space>
