@@ -17,6 +17,7 @@ import Settings from './components/Settings';
 import Reports from './components/Reports';
 import CreditNotes from './components/CreditNotes';
 import About from './components/About';
+import ContactSupport from './components/ContactSupport';
 import SplashScreen from './components/SplashScreen';
 import PinGate from './components/PinGate';
 import { App as AntApp } from 'antd';
@@ -73,6 +74,7 @@ export default function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/credit-notes" element={<CreditNotes />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/support" element={<ContactSupport />} />
                 </Route>
               </Routes>
             </HashRouter>

@@ -6,7 +6,7 @@ import {
   ShoppingOutlined, WalletOutlined, BarChartOutlined, SettingOutlined,
   MenuOutlined, SunOutlined, MoonOutlined, SearchOutlined, AuditOutlined,
   DollarOutlined, ShoppingCartOutlined, TeamOutlined, HistoryOutlined,
-  FormOutlined, InfoCircleOutlined,
+  FormOutlined, InfoCircleOutlined, QuestionCircleOutlined,
   CloseOutlined, MinusOutlined, ExpandOutlined, CompressOutlined
 } from '@ant-design/icons';
 import { getSettings } from '../db';
@@ -44,6 +44,7 @@ function NavItems() {
     },
     { key: '/settings', icon: SettingOutlined, label: t('nav.settings') },
     { key: '/about', icon: InfoCircleOutlined, label: t('nav.about') },
+    { key: '/support', icon: QuestionCircleOutlined, label: t('nav.support') },
   ];
 }
 

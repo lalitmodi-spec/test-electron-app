@@ -5,7 +5,7 @@ import {
   DashboardOutlined, FileTextOutlined, UserOutlined, ShoppingOutlined,
   WalletOutlined, BarChartOutlined, SettingOutlined, AuditOutlined,
   DollarOutlined, ShoppingCartOutlined, TeamOutlined, HistoryOutlined,
-  FormOutlined, InfoCircleOutlined, SearchOutlined
+  FormOutlined, InfoCircleOutlined, SearchOutlined, QuestionCircleOutlined
 } from '@ant-design/icons';
 import db from '../db';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -29,6 +29,7 @@ const NAV_ITEMS = [
   { key: '/quotation/new', icon: FormOutlined, label: 'nav.newQuotation' },
   { key: '/settings', icon: SettingOutlined, label: 'nav.settings' },
   { key: '/about', icon: InfoCircleOutlined, label: 'nav.about' },
+  { key: '/support', icon: QuestionCircleOutlined, label: 'nav.support' },
 ];
 
 export default function CommandPalette({ open, onClose }) {

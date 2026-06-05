@@ -312,11 +312,11 @@ ipcMain.handle("send-email-smtp", async (event, { to, subject, body, pdfBase64, 
     const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     const config = {
       host: raw.host,
-      port: raw.port,
+      port: Number(raw.port) || 587,
       user: raw.user,
       pass: decrypt(raw.pass),
       fromEmail: raw.fromEmail,
-      secure: raw.secure,
+      secure: Boolean(raw.secure),
     };
 
     if (!config.host || !config.user || !config.pass || !config.fromEmail) {

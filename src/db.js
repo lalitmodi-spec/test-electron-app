@@ -137,7 +137,7 @@ const defaultSettings = {
   smtpUser: '',
   smtpPass: '',
   smtpFromEmail: '',
-  smtpSecure: false,
+  smtpSecure: 0,
 };
 
 export async function getSettings() {

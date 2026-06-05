@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal, Table, Tooltip } from 'antd';
-import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined, MailOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Tabs, Space, Popconfirm, Alert, Image, Divider, InputNumber, Modal, Table, Tooltip, Tag, Drawer } from 'antd';
+import { SaveOutlined, DownloadOutlined, UploadOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, BellOutlined, LockOutlined, SafetyCertificateOutlined, SettingOutlined, CloudDownloadOutlined, CloudUploadOutlined, HistoryOutlined, MailOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import db, { getSettings, updateSetting, logActivity, backupAllData, saveBackupRecord, restoreAllData, getBackupHistory, deleteBackupRecord } from '../db';
 import TemplatePreview from '../pdf/TemplatePreview';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -17,6 +17,7 @@ export default function Settings() {
   const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
   const [templatePreviewSelected, setTemplatePreviewSelected] = useState('professional');
   const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpGuideOpen, setSmtpGuideOpen] = useState(false);
 
   useEffect(() => {
     getSettings().then(s => {
@@ -40,7 +41,7 @@ export default function Settings() {
               smtpUser: r.config.user,
               smtpPass: r.config.pass,
               smtpFromEmail: r.config.fromEmail,
-              smtpSecure: r.config.secure,
+              smtpSecure: r.config.secure ? 1 : 0,
             });
           }
         });
@@ -94,10 +95,14 @@ export default function Settings() {
           user: values.smtpUser,
           pass: values.smtpPass,
           fromEmail: values.smtpFromEmail,
-          secure: values.smtpSecure,
+          secure: Boolean(values.smtpSecure),
         });
       }
-      document.documentElement.classList.toggle('dark', values.theme === 'dark');
+      if (values.theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       await logActivity('settings', t('activity.settings'));
       message.success(t('msg.saved'));
     } catch {
@@ -631,8 +636,8 @@ export default function Settings() {
           <Col xs={24} sm={6}>
             <Form.Item name="smtpSecure" label={t('settings.smtpSecure')}>
               <Select>
-                <Select.Option value={true}>SSL/TLS (465)</Select.Option>
-                <Select.Option value={false}>STARTTLS (587)</Select.Option>
+                <Select.Option value={1}>SSL/TLS (465)</Select.Option>
+                <Select.Option value={0}>STARTTLS (587)</Select.Option>
               </Select>
             </Form.Item>
           </Col>
@@ -677,6 +682,9 @@ export default function Settings() {
                 loading={smtpTesting}
               >
                 {t('settings.smtpTest')}
+              </Button>
+              <Button icon={<QuestionCircleOutlined />} onClick={() => setSmtpGuideOpen(true)}>
+                {t('settings.smtpGuide')}
               </Button>
             </Space>
           </Col>
@@ -797,6 +805,156 @@ export default function Settings() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Drawer
+        title={<Space><QuestionCircleOutlined style={{ color: 'var(--accent)' }} /><Text strong style={{ fontSize: 16 }}>{t('settings.smtpGuide')}</Text></Space>}
+        open={smtpGuideOpen}
+        onClose={() => setSmtpGuideOpen(false)}
+        width={560}
+        styles={{ body: { padding: '24px' } }}
+      >
+        <div style={{ marginBottom: 28 }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(99,102,241,0.05))',
+            borderRadius: 12, padding: 20, border: '1px solid rgba(var(--accent-rgb), 0.15)',
+            marginBottom: 24
+          }}>
+            <Row gutter={[16, 16]} align="middle">
+              <Col>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14,
+                  background: 'var(--accent-gradient)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <MailOutlined style={{ fontSize: 22, color: 'white' }} />
+                </div>
+              </Col>
+              <Col flex="auto">
+                <Text strong style={{ fontSize: 15, display: 'block', marginBottom: 2 }}>{t('settings.smtpGuide')}</Text>
+                <Text type="secondary" style={{ fontSize: 13 }}>{t('settings.emailSettingsDesc')}</Text>
+              </Col>
+            </Row>
+          </div>
+
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: 'var(--accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0
+              }}>1</div>
+              <Text strong style={{ fontSize: 15 }}>{t('settings.smtpStep1Title')}</Text>
+            </div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 10, marginLeft: 44 }}>{t('settings.smtpStep1Desc')}</Text>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginLeft: 44 }}>
+              {[
+                { label: 'Gmail', desc: t('settings.smtpStep1Gmail') },
+                { label: 'Outlook / Hotmail', desc: t('settings.smtpStep1Outlook') },
+                { label: 'Yahoo Mail', desc: t('settings.smtpStep1Yahoo') },
+                { label: t('settings.smtpStep1Other').split('—')[0].trim(), desc: t('settings.smtpStep1Other') },
+              ].map((item, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                  background: '#1a2332', borderRadius: 10, border: '1px solid #2a3444'
+                }}>
+                  <Tag color="var(--accent)" style={{ marginRight: 0, flexShrink: 0, fontWeight: 600 }}>{item.label}</Tag>
+                  <Text style={{ fontSize: 13, color: '#94a3b8' }}>{item.desc}</Text>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: 'var(--accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0
+              }}>2</div>
+              <Text strong style={{ fontSize: 15 }}>{t('settings.smtpStep2Title')}</Text>
+            </div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 12, marginLeft: 44 }}>{t('settings.smtpStep2Desc')}</Text>
+            <div style={{
+              background: '#1a2332', borderRadius: 12, padding: 16,
+              border: '1px solid #2a3444', overflow: 'hidden', marginLeft: 44
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #2a3444' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8', fontWeight: 600 }}>{t('settings.smtpProvider')}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8', fontWeight: 600 }}>Host</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8', fontWeight: 600 }}>Port</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8', fontWeight: 600 }}>{t('settings.smtpSecure')}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8', fontWeight: 600 }}>{t('settings.smtpPassword')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { name: 'Gmail', host: 'smtp.gmail.com', pass: t('settings.smtpAppPass') },
+                    { name: 'Outlook', host: 'smtp-mail.outlook.com', pass: t('settings.smtpNormalPass') },
+                    { name: 'Yahoo', host: 'smtp.mail.yahoo.com', pass: t('settings.smtpAppPass') },
+                    { name: 'Zoho', host: 'smtp.zoho.com', pass: t('settings.smtpNormalPass') },
+                  ].map((row, i) => (
+                    <tr key={i} style={{ borderBottom: i < 3 ? '1px solid #2a3444' : 'none' }}>
+                      <td style={{ padding: '10px', fontWeight: 600 }}>{row.name}</td>
+                      <td style={{ padding: '10px', fontFamily: 'monospace', fontSize: 11 }}>{row.host}</td>
+                      <td style={{ padding: '10px' }}>587</td>
+                      <td style={{ padding: '10px' }}>STARTTLS</td>
+                      <td style={{ padding: '10px' }}><Tag color="blue" style={{ fontSize: 10, marginRight: 0 }}>{row.pass}</Tag></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8, marginLeft: 44 }}>
+              {t('settings.smtpEmailFull')} → {t('settings.smtpUsername')} field
+            </Text>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: 'var(--accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0
+              }}>3</div>
+              <Text strong style={{ fontSize: 15 }}>{t('settings.smtpStep3Title')}</Text>
+            </div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 12, marginLeft: 44 }}>{t('settings.smtpStep3Desc')}</Text>
+            <div style={{
+              background: '#1a2332', borderRadius: 12, padding: 20,
+              border: '1px solid #2a3444', marginLeft: 44
+            }}>
+              <Text strong style={{ color: 'var(--accent)', display: 'block', marginBottom: 14, fontSize: 14 }}>
+                📌 {t('settings.smtpGmailGuide')}
+              </Text>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  t('settings.smtpGmailStep1'),
+                  t('settings.smtpGmailStep2'),
+                  t('settings.smtpGmailStep3'),
+                  t('settings.smtpGmailStep4'),
+                  t('settings.smtpGmailStep5'),
+                  t('settings.smtpGmailStep6'),
+                ].map((step, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: 8, minWidth: 24,
+                      background: 'rgba(var(--accent-rgb), 0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, color: 'var(--accent)'
+                    }}>{i + 1}</div>
+                    <Text style={{ color: '#cbd5e1', lineHeight: 1.6, fontSize: 13 }}>{step}</Text>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }
